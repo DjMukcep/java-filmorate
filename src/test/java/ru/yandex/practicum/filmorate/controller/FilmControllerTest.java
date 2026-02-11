@@ -37,7 +37,9 @@ public class FilmControllerTest {
                 .releaseDate(LocalDate.of(2000, 1, 1))
                 .duration(100)
                 .build();
-        controller.getFilms().add(film);
+
+        Errors errors = new BeanPropertyBindingResult(film, "film");
+        controller.addFilm(film, errors);
     }
 
     @Test
@@ -350,7 +352,7 @@ public class FilmControllerTest {
 
         assertEquals("Film validation didn't pass - wrong duration.", exception.getMessage());
         assertFalse(controller.getFilms().size() > 1);
-        assertNotEquals(controller.getFilms().getFirst().getDuration(), wrongDuration);
+        assertNotEquals(wrongDuration, controller.getFilms().getFirst().getDuration());
     }
 
 

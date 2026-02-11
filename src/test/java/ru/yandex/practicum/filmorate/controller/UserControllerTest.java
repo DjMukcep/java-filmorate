@@ -34,7 +34,9 @@ public class UserControllerTest {
                 .name("test-name")
                 .birthday(LocalDate.of(2000, 12, 12))
                 .build();
-        userController.getUsers().add(user);
+
+        Errors errors = new BeanPropertyBindingResult(user, "user");
+        userController.addUser(user, errors);
     }
 
     @Test

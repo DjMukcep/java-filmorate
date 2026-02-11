@@ -19,7 +19,7 @@ public class UserController {
 
     @GetMapping
     public List<User> getUsers() {
-        return users;
+        return List.copyOf(users);
     }
 
     @PostMapping

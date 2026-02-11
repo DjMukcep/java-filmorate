@@ -20,7 +20,7 @@ public class FilmController {
 
     @GetMapping
     public List<Film> getFilms() {
-        return films;
+        return List.copyOf(films);
     }
 
     @PostMapping
@@ -53,7 +53,7 @@ public class FilmController {
         return newFilm;
     }
 
-    public void validateFilm(Film film, Errors errors) {
+    private void validateFilm(Film film, Errors errors) {
         checkTitle(errors);
         checkDescription(errors);
         checkReleaseDate(film);
