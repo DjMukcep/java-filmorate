@@ -8,10 +8,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Errors;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,12 +27,11 @@ public class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        userController = new UserController();
+        userController = new UserController(new UserService(new InMemoryUserStorage()));
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             validator = factory.getValidator();
         }
         User user = User.builder()
-                .id(1)
                 .email("test@email.com")
                 .login("test-login")
                 .name("test-name")
@@ -242,7 +245,7 @@ public class UserControllerTest {
     @Test
     void shouldUpdateUserWhenUserFound() {
         User validUser = User.builder()
-                .id(1)
+                .id(1L)
                 .email("user@email.com")
                 .login("user-login")
                 .name("user-name")
@@ -268,7 +271,7 @@ public class UserControllerTest {
     @Test
     void shouldThrowExceptionWhenUserNotFound() {
         User wrongUser = User.builder()
-                .id(9999)
+                .id(9999L)
                 .email("user@email.com")
                 .login("user-login")
                 .name("user-name")
@@ -276,10 +279,10 @@ public class UserControllerTest {
                 .build();
 
         Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.updateUser(wrongUser, errors));
+        NotFoundException exception = assertThrows(
+                NotFoundException.class, () -> userController.updateUser(wrongUser, errors));
 
-        assertEquals("User not found.", exception.getMessage());
+        assertEquals("User with id = 9999 not found.", exception.getMessage());
         assertFalse(userController.getUsers().size() > 1);
         assertNotEquals(wrongUser, userController.getUsers().getFirst());
     }
@@ -400,7 +403,7 @@ public class UserControllerTest {
     void shouldUpdateUserWhenNameIsEmpty() {
         String name = "";
         User validUser = User.builder()
-                .id(1)
+                .id(1L)
                 .email("user@email.com")
                 .login("user-login")
                 .name(name)
@@ -426,7 +429,7 @@ public class UserControllerTest {
     @Test
     void shouldUpdateUserWhenNameIsNull() {
         User validUser = User.builder()
-                .id(1)
+                .id(1L)
                 .email("user@email.com")
                 .login("user-login")
                 .name(null)
@@ -466,6 +469,114 @@ public class UserControllerTest {
         assertEquals("User validation didn't pass - wrong birth date.", exception.getMessage());
         assertFalse(userController.getUsers().size() > 1);
         assertNotEquals(wrongBirthDate, userController.getUsers().getFirst().getBirthday());
+    }
+
+    @Test
+    void shouldAddFriendWhenValidFriendPassed() {
+        User friend = User.builder()
+                .email("user@email.com")
+                .login("user-login")
+                .name("friend-name")
+                .birthday(LocalDate.of(2002, 12, 12))
+                .build();
+        Errors errors = new BeanPropertyBindingResult(friend, "user");
+        userController.addUser(friend, errors);
+
+        userController.addFriend(1L, friend.getId());
+        List<User> friends = userController.getFriends(1L);
+        List<User> friendOfFriend = userController.getFriends(friend.getId());
+
+        assertTrue(friends.contains(friend));
+        assertEquals(1L, friendOfFriend.getFirst().getId());
+    }
+
+    @Test
+    void shouldNotAddFriendWhenWithIdSameAsUserId() {
+
+        ValidationException exception = assertThrows(
+                ValidationException.class, () -> userController.addFriend(1L, 1L));
+
+        assertEquals("Detected try to pass user and friend with same id.", exception.getMessage());
+        assertTrue(userController.getFriends(1L).isEmpty());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenTryDeleteFriendWithIdSameAsUserId() {
+
+        ValidationException exception = assertThrows(
+                ValidationException.class, () -> userController.deleteFriend(1L, 1L));
+
+        assertEquals("Detected try to pass user and friend with same id.", exception.getMessage());
+        assertTrue(userController.getFriends(1L).isEmpty());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenIdFriendNotFoundWhileAddFriend() {
+        NotFoundException exception = assertThrows(
+                NotFoundException.class, () -> userController.addFriend(1L, 999L));
+        assertEquals("User with id = 999 not found.", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenIdFriendNotFoundWhileDeleteFriend() {
+        NotFoundException exception = assertThrows(
+                NotFoundException.class, () -> userController.deleteFriend(1L, 999L));
+        assertEquals("User with id = 999 not found.", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenIdUserNotFoundWhileAddFriend() {
+        NotFoundException exception = assertThrows(
+                NotFoundException.class, () -> userController.addFriend(999L, 1L));
+        assertEquals("User with id = 999 not found.", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenIdUserNotFoundWhileDeleteFriend() {
+        NotFoundException exception = assertThrows(
+                NotFoundException.class, () -> userController.deleteFriend(999L, 1L));
+        assertEquals("User with id = 999 not found.", exception.getMessage());
+    }
+
+    @Test
+    void shouldReturnRightCommonFriends() {
+        setUpUserFriends();
+        List<User> commFriends = userController.getCommonFriends(1L, 4L);
+        assertEquals(1, commFriends.size());
+        assertEquals(3, commFriends.getFirst().getId());
+    }
+
+    void setUpUserFriends() {
+        User user2 = User.builder()
+                .email("test@email.com")
+                .login("test-login")
+                .name("name1")
+                .birthday(LocalDate.of(2000, 12, 12))
+                .build();
+        User user3 = User.builder()
+                .email("test@email.com")
+                .login("test-login")
+                .name("name2")
+                .birthday(LocalDate.of(2000, 12, 12))
+                .build();
+        User user4 = User.builder()
+                .email("test@email.com")
+                .login("test-login")
+                .name("name3")
+                .birthday(LocalDate.of(2000, 12, 12))
+                .build();
+        Errors errors2 = new BeanPropertyBindingResult(user2, "user");
+        Errors errors3 = new BeanPropertyBindingResult(user3, "user");
+        Errors errors4 = new BeanPropertyBindingResult(user4, "user");
+        userController.addUser(user2, errors2);
+        userController.addUser(user3, errors3);
+        userController.addUser(user4, errors4);
+
+        userController.addFriend(1L, user2.getId());
+        userController.addFriend(1L, user3.getId());
+        userController.addFriend(1L, user4.getId());
+
+        userController.addFriend(user4.getId(), user3.getId());
     }
 
     Errors processErrors(User wrongUser) {

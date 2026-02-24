@@ -3,16 +3,14 @@ package ru.yandex.practicum.filmorate.model;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
-
 import java.time.LocalDate;
-
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
-    private Integer id;
+    private Long id;
     @NotBlank
     @Email
     private String email;
