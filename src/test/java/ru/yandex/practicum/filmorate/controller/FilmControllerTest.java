@@ -20,7 +20,6 @@ import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -485,21 +484,21 @@ public class FilmControllerTest {
     }
 
     void setUpFilms() {
-        Film Film2 = Film.builder()
+        Film film2 = Film.builder()
                 .name("film2")
                 .description("_".repeat(200))
                 .releaseDate(LocalDate.of(1895, 12, 28))
                 .duration(100)
                 .build();
-        Film Film3 = Film.builder()
+        Film film3 = Film.builder()
                 .name("film3")
                 .description("_".repeat(200))
                 .releaseDate(LocalDate.of(1895, 12, 28))
                 .duration(100)
                 .build();
-        Errors errors2 = new BeanPropertyBindingResult(Film2, "film");
-        Errors errors3 = new BeanPropertyBindingResult(Film3, "film");
-        filmController.addFilm(Film2, errors2);
-        filmController.addFilm(Film3, errors3);
+        Errors errors2 = new BeanPropertyBindingResult(film2, "film");
+        Errors errors3 = new BeanPropertyBindingResult(film3, "film");
+        filmController.addFilm(film2, errors2);
+        filmController.addFilm(film3, errors3);
     }
 }
