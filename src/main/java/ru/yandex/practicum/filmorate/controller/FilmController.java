@@ -1,8 +1,8 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
@@ -12,13 +12,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/films")
+@RequiredArgsConstructor
 public class FilmController {
 
     private final FilmService filmService;
-
-    public FilmController(FilmService filmService) {
-        this.filmService = filmService;
-    }
 
     @GetMapping
     public List<Film> getFilms() {
@@ -27,13 +24,13 @@ public class FilmController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Film addFilm(@Valid @RequestBody Film film, Errors errors) {
-        return filmService.addFilm(film, errors);
+    public Film addFilm(@Valid @RequestBody Film film) {
+        return filmService.addFilm(film);
     }
 
     @PutMapping
-    public Film updateFilm(@Valid @RequestBody Film newFilm, Errors errors) {
-        return filmService.updateFilm(newFilm, errors);
+    public Film updateFilm(@Valid @RequestBody Film newFilm) {
+        return filmService.updateFilm(newFilm);
     }
 
     @PutMapping("/{id}/like/{userId}")

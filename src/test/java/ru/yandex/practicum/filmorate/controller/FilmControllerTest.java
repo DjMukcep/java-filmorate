@@ -7,9 +7,6 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import org.springframework.validation.BeanPropertyBindingResult;
-import org.springframework.validation.Errors;
-
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
@@ -48,8 +45,7 @@ public class FilmControllerTest {
                 .duration(100)
                 .build();
 
-        Errors errors = new BeanPropertyBindingResult(film, "film");
-        filmController.addFilm(film, errors);
+        filmController.addFilm(film);
     }
 
     @Test
@@ -61,9 +57,8 @@ public class FilmControllerTest {
                 .duration(100)
                 .build();
 
-        Errors errors = new BeanPropertyBindingResult(validFilm, "film");
         Set<ConstraintViolation<Film>> violations = validator.validate(validFilm);
-        Film film = filmController.addFilm(validFilm, errors);
+        Film film = filmController.addFilm(validFilm);
 
         assertTrue(violations.isEmpty());
         assertNotNull(film.getId());
@@ -76,7 +71,7 @@ public class FilmControllerTest {
 
 
     @Test
-    void shouldNotAddFilmWhenFilmNameEmpty() {
+    void shouldHaveValidationErrorsWhenFilmNameEmpty() {
         String wrongName = "";
         Film wrongFilm = Film.builder()
                 .name(wrongName)
@@ -85,17 +80,15 @@ public class FilmControllerTest {
                 .duration(100)
                 .build();
 
-        Errors errors = processErrors(wrongFilm);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.addFilm(wrongFilm, errors));
+        Set<ConstraintViolation<Film>> violations = validator.validate(wrongFilm);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("Film validation didn't pass - wrong name.", exception.getMessage());
-        assertFalse(filmController.getFilms().size() > 1);
-        assertNotEquals(wrongName, filmController.getFilms().getFirst().getName());
+        assertFalse(violations.isEmpty());
+        assertEquals("Название фильма не может быть пустым.", message);
     }
 
     @Test
-    void shouldNotAddFilmWhenFilmNameIsNull() {
+    void shouldHaveValidationErrorsWhenFilmNameIsNull() {
         Film wrongFilm = Film.builder()
                 .name(null)
                 .description("description")
@@ -103,17 +96,14 @@ public class FilmControllerTest {
                 .duration(100)
                 .build();
 
-        Errors errors = processErrors(wrongFilm);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.addFilm(wrongFilm, errors));
+        Set<ConstraintViolation<Film>> violations = validator.validate(wrongFilm);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("Film validation didn't pass - wrong name.", exception.getMessage());
-        assertFalse(filmController.getFilms().size() > 1);
-        assertNotEquals(null, filmController.getFilms().getFirst().getName());
+        assertEquals("Название фильма не может быть пустым.", message);
     }
 
     @Test
-    void shouldNotAddFilmWhenDescriptionOverMaxLength() {
+    void shouldHaveValidationErrorsWhenDescriptionOverMaxLength() {
         String wrongDescription = "_".repeat(201);
         Film wrongFilm = Film.builder()
                 .name("film")
@@ -122,17 +112,14 @@ public class FilmControllerTest {
                 .duration(100)
                 .build();
 
-        Errors errors = processErrors(wrongFilm);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.addFilm(wrongFilm, errors));
+        Set<ConstraintViolation<Film>> violations = validator.validate(wrongFilm);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("Film validation didn't pass - wrong description.", exception.getMessage());
-        assertFalse(filmController.getFilms().size() > 1);
-        assertNotEquals(wrongDescription, filmController.getFilms().getFirst().getDescription());
+        assertEquals("Описание не должно превышать 200 символов.", message);
     }
 
     @Test
-    void shouldNotAddFilmWhenDescriptionIsNull() {
+    void shouldHaveValidationErrorsWhenDescriptionIsNull() {
         Film wrongFilm = Film.builder()
                 .name("film")
                 .description(null)
@@ -140,17 +127,14 @@ public class FilmControllerTest {
                 .duration(100)
                 .build();
 
-        Errors errors = processErrors(wrongFilm);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.addFilm(wrongFilm, errors));
+        Set<ConstraintViolation<Film>> violations = validator.validate(wrongFilm);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("Film validation didn't pass - wrong description.", exception.getMessage());
-        assertFalse(filmController.getFilms().size() > 1);
-        assertNotEquals(null, filmController.getFilms().getFirst().getDescription());
+        assertEquals("Описание обязательно к заполнению.", message);
     }
 
     @Test
-    void shouldNotAddFilmWhenReleaseDateBeforeMinDate() {
+    void shouldNotAddAndUpdateFilmWhenReleaseDateBeforeMinDate() {
         LocalDate wrongReleaseDate = LocalDate.of(1895, 12, 27);
         Film wrongFilm = Film.builder()
                 .name("film")
@@ -159,17 +143,16 @@ public class FilmControllerTest {
                 .duration(100)
                 .build();
 
-        Errors errors = processErrors(wrongFilm);
         ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.addFilm(wrongFilm, errors));
+                ValidationException.class, () -> filmController.addFilm(wrongFilm));
 
-        assertEquals("Film validation didn't pass - wrong release date.", exception.getMessage());
+        assertEquals("Самая ранняя разрешенная дата фильма: 1895-12-28", exception.getMessage());
         assertFalse(filmController.getFilms().size() > 1);
         assertNotEquals(filmController.getFilms().getFirst().getReleaseDate(), wrongReleaseDate);
     }
 
     @Test
-    void shouldNotAddFilmWhenReleaseDateIsNull() {
+    void shouldNotAddAndUpdateFilmWhenReleaseDateIsNull() {
         Film wrongFilm = Film.builder()
                 .name("film")
                 .description("description")
@@ -177,17 +160,16 @@ public class FilmControllerTest {
                 .duration(100)
                 .build();
 
-        Errors errors = processErrors(wrongFilm);
         ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.addFilm(wrongFilm, errors));
+                ValidationException.class, () -> filmController.addFilm(wrongFilm));
 
-        assertEquals("Film validation didn't pass - wrong release date.", exception.getMessage());
+        assertEquals("Самая ранняя разрешенная дата фильма: 1895-12-28", exception.getMessage());
         assertFalse(filmController.getFilms().size() > 1);
         assertNotEquals(null, filmController.getFilms().getFirst().getReleaseDate());
     }
 
     @Test
-    void shouldNotAddFilmWhenDurationIsZero() {
+    void shouldHaveValidationErrorsWhenDurationIsZero() {
         Integer wrongDuration = 0;
         Film wrongFilm = Film.builder()
                 .name("film")
@@ -196,17 +178,14 @@ public class FilmControllerTest {
                 .duration(wrongDuration)
                 .build();
 
-        Errors errors = processErrors(wrongFilm);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.addFilm(wrongFilm, errors));
+        Set<ConstraintViolation<Film>> violations = validator.validate(wrongFilm);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("Film validation didn't pass - wrong duration.", exception.getMessage());
-        assertFalse(filmController.getFilms().size() > 1);
-        assertNotEquals(wrongDuration, filmController.getFilms().getFirst().getDuration());
+        assertEquals("Продолжительность фильма должна быть положительной.", message);
     }
 
     @Test
-    void shouldNotAddFilmWhenDurationIsNegative() {
+    void shouldHaveValidationErrorsWhenDurationIsNegative() {
         Integer wrongDuration = -100;
         Film wrongFilm = Film.builder()
                 .name("film")
@@ -215,17 +194,14 @@ public class FilmControllerTest {
                 .duration(wrongDuration)
                 .build();
 
-        Errors errors = processErrors(wrongFilm);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.addFilm(wrongFilm, errors));
+        Set<ConstraintViolation<Film>> violations = validator.validate(wrongFilm);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("Film validation didn't pass - wrong duration.", exception.getMessage());
-        assertFalse(filmController.getFilms().size() > 1);
-        assertNotEquals(wrongDuration, filmController.getFilms().getFirst().getDuration());
+        assertEquals("Продолжительность фильма должна быть положительной.", message);
     }
 
     @Test
-    void shouldNotAddFilmWhenDurationIsNull() {
+    void shouldNHaveValidationErrorsWhenDurationIsNull() {
         Film wrongFilm = Film.builder()
                 .name("film")
                 .description("description")
@@ -233,13 +209,10 @@ public class FilmControllerTest {
                 .duration(null)
                 .build();
 
-        Errors errors = processErrors(wrongFilm);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.addFilm(wrongFilm, errors));
+        Set<ConstraintViolation<Film>> violations = validator.validate(wrongFilm);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("Film validation didn't pass - wrong duration.", exception.getMessage());
-        assertFalse(filmController.getFilms().size() > 1);
-        assertNotEquals(null, filmController.getFilms().getFirst().getDuration());
+        assertEquals("Длительность фильма должна быть указана.", message);
     }
 
     @Test
@@ -252,9 +225,8 @@ public class FilmControllerTest {
                 .duration(100)
                 .build();
 
-        Errors errors = new BeanPropertyBindingResult(validFilm, "film");
         Set<ConstraintViolation<Film>> violations = validator.validate(validFilm);
-        Film film = filmController.updateFilm(validFilm, errors);
+        Film film = filmController.updateFilm(validFilm);
 
         assertNotNull(film);
         assertTrue(violations.isEmpty());
@@ -278,91 +250,13 @@ public class FilmControllerTest {
                 .duration(100)
                 .build();
 
-        Errors errors = processErrors(wrongFilm);
         NotFoundException exception = assertThrows(
-                NotFoundException.class, () -> filmController.updateFilm(wrongFilm, errors));
+                NotFoundException.class, () -> filmController.updateFilm(wrongFilm));
 
-        assertEquals("Film with id = 9999 not found.", exception.getMessage());
+        assertEquals("Фильм с id = 9999 не найден.", exception.getMessage());
         assertFalse(filmController.getFilms().size() > 1);
         assertFalse(filmController.getFilms().getFirst().getName().isEmpty());
         assertNotEquals(wrongFilm, filmController.getFilms().getFirst());
-    }
-
-    @Test
-    void shouldNotUpdateFilmWhenFilmNameEmpty() {
-        String wrongName = "";
-        Film wrongFilm = Film.builder()
-                .name(wrongName)
-                .description("description")
-                .releaseDate(LocalDate.of(1999, 2, 2))
-                .duration(100)
-                .build();
-
-        Errors errors = processErrors(wrongFilm);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.updateFilm(wrongFilm, errors));
-
-        assertEquals("Film validation didn't pass - wrong name.", exception.getMessage());
-        assertFalse(filmController.getFilms().size() > 1);
-        assertFalse(filmController.getFilms().getFirst().getName().isEmpty());
-        assertNotEquals(wrongName, filmController.getFilms().getFirst().getName());
-    }
-
-    @Test
-    void shouldNotUpdateFilmWhenDescriptionOverMaxLength() {
-        String wrongDescription = "_".repeat(201);
-        Film wrongFilm = Film.builder()
-                .name("film")
-                .description(wrongDescription)
-                .releaseDate(LocalDate.of(1999, 2, 2))
-                .duration(100)
-                .build();
-
-        Errors errors = processErrors(wrongFilm);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.updateFilm(wrongFilm, errors));
-
-        assertEquals("Film validation didn't pass - wrong description.", exception.getMessage());
-        assertFalse(filmController.getFilms().size() > 1);
-        assertNotEquals(filmController.getFilms().getFirst().getDescription(), wrongDescription);
-    }
-
-    @Test
-    void shouldNotUpdateFilmWhenReleaseDateBeforeMinDate() {
-        LocalDate wrongReleaseDate = LocalDate.of(1895, 12, 27);
-        Film wrongFilm = Film.builder()
-                .name("film")
-                .description("description")
-                .releaseDate(wrongReleaseDate)
-                .duration(100)
-                .build();
-
-        Errors errors = processErrors(wrongFilm);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.updateFilm(wrongFilm, errors));
-
-        assertEquals("Film validation didn't pass - wrong release date.", exception.getMessage());
-        assertFalse(filmController.getFilms().size() > 1);
-        assertNotEquals(filmController.getFilms().getFirst().getReleaseDate(), wrongReleaseDate);
-    }
-
-    @Test
-    void shouldNotUpdateFilmWhenDurationNotPositive() {
-        Integer wrongDuration = 0;
-        Film wrongFilm = Film.builder()
-                .name("film")
-                .description("description")
-                .releaseDate(LocalDate.of(1999, 2, 2))
-                .duration(wrongDuration)
-                .build();
-
-        Errors errors = processErrors(wrongFilm);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> filmController.updateFilm(wrongFilm, errors));
-
-        assertEquals("Film validation didn't pass - wrong duration.", exception.getMessage());
-        assertFalse(filmController.getFilms().size() > 1);
-        assertNotEquals(wrongDuration, filmController.getFilms().getFirst().getDuration());
     }
 
     @Test
@@ -382,7 +276,7 @@ public class FilmControllerTest {
 
         assertEquals("film2", films.get(0).getName());
         assertEquals("film3", films.get(1).getName());
-        assertEquals("default-film",films.get(2).getName());
+        assertEquals("default-film", films.get(2).getName());
     }
 
     @Test
@@ -418,7 +312,7 @@ public class FilmControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> filmController.addLike(9999L, 1L));
 
-        assertEquals("Film with id = " + 9999L + " not found.", exception.getMessage());
+        assertEquals("Фильм с id = " + 9999L + " не найден.", exception.getMessage());
     }
 
     @Test
@@ -426,7 +320,7 @@ public class FilmControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> filmController.addLike(1L, 9999L));
 
-        assertEquals("User with id = " + 9999L + " not found.", exception.getMessage());
+        assertEquals("Пользователь с id = 9999 не найден.", exception.getMessage());
     }
 
     @Test
@@ -436,7 +330,7 @@ public class FilmControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> filmController.deleteLike(9999L, 1L));
 
-        assertEquals("Film with id = " + 9999L + " not found.", exception.getMessage());
+        assertEquals("Фильм с id = " + 9999L + " не найден.", exception.getMessage());
     }
 
     @Test
@@ -444,16 +338,7 @@ public class FilmControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> filmController.deleteLike(1L, 9999L));
 
-        assertEquals("User with id = " + 9999L + " not found.", exception.getMessage());
-    }
-
-
-    Errors processErrors(Film wrongFilm) {
-        Errors errors = new BeanPropertyBindingResult(wrongFilm, "film");
-        for (ConstraintViolation<Film> v : validator.validate(wrongFilm)) {
-            errors.rejectValue(v.getPropertyPath().toString(), "invalid", v.getMessage());
-        }
-        return errors;
+        assertEquals("Пользователь с id = 9999 не найден.", exception.getMessage());
     }
 
     void setUpUsers() {
@@ -475,12 +360,9 @@ public class FilmControllerTest {
                 .name("name3")
                 .birthday(LocalDate.of(2000, 12, 12))
                 .build();
-        Errors errors1 = new BeanPropertyBindingResult(user1, "user");
-        Errors errors2 = new BeanPropertyBindingResult(user2, "user");
-        Errors errors3 = new BeanPropertyBindingResult(user3, "user");
-        userService.addUser(user1, errors1);
-        userService.addUser(user2, errors2);
-        userService.addUser(user3, errors3);
+        userService.addUser(user1);
+        userService.addUser(user2);
+        userService.addUser(user3);
     }
 
     void setUpFilms() {
@@ -496,9 +378,7 @@ public class FilmControllerTest {
                 .releaseDate(LocalDate.of(1895, 12, 28))
                 .duration(100)
                 .build();
-        Errors errors2 = new BeanPropertyBindingResult(film2, "film");
-        Errors errors3 = new BeanPropertyBindingResult(film3, "film");
-        filmController.addFilm(film2, errors2);
-        filmController.addFilm(film3, errors3);
+        filmController.addFilm(film2);
+        filmController.addFilm(film3);
     }
 }

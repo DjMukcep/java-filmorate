@@ -1,8 +1,8 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.Errors;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -12,20 +12,18 @@ import java.util.*;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserStorage userStorage;
 
-    public UserService(UserStorage userStorage) {
-        this.userStorage = userStorage;
-    }
 
     public List<User> getUsers() {
         return userStorage.getUsers();
     }
 
-    public User addUser(User user, Errors errors) {
-        validate(user, errors);
+    public User addUser(User user) {
+        validate(user);
 
         Long id = (long) (getUsers().size() + 1);
         user.setId(id);
@@ -34,14 +32,14 @@ public class UserService {
         return user;
     }
 
-    public User updateUser(User newUser, Errors errors) {
-        validate(newUser, errors);
+    public User updateUser(User newUser) {
+        validate(newUser);
 
         return userStorage.getUserById(newUser.getId())
                 .map(user -> processUpdateUser(newUser))
                 .orElseThrow(() -> {
                     log.error("Error updating user: {}", newUser.getName());
-                    return new NotFoundException("User with id = " + newUser.getId() + " not found.");
+                    return new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден.");
                 });
     }
 
@@ -85,14 +83,15 @@ public class UserService {
     private void checkUserConflict(Long id, Long friendId) {
         if (Objects.equals(id, friendId)) {
             log.error("User with id = {} conflicted with friendId = {}.", id, friendId);
-            throw new ValidationException("Detected try to pass user and friend with same id.");
+            throw new ValidationException(
+                    "Попытка добавить или удалить друга с тем же id, что и у пользователя.");
         }
     }
 
     private User findUserOrThrow(Long userId) {
         return userStorage.getUserById(userId).orElseThrow(() -> {
             log.error("User with id = {} not found.", userId);
-            return new NotFoundException("User with id = " + userId + " not found.");
+            return new NotFoundException("Пользователь с id = " + userId + " не найден.");
         });
     }
 
@@ -102,39 +101,13 @@ public class UserService {
         return newUser;
     }
 
-    private void validate(User user, Errors errors) {
-        checkLogin(errors);
+    private void validate(User user) {
         checkName(user);
-        checkEmail(errors);
-        checkBirthDate(errors);
-    }
-
-    private void checkLogin(Errors errors) {
-        if (errors.hasFieldErrors("login")) {
-            processError("User validation didn't pass - wrong login.");
-        }
     }
 
     private void checkName(User user) {
         if (user.getName() == null || user.getName().isBlank()) {
             user.setName(user.getLogin());
         }
-    }
-
-    private void checkEmail(Errors errors) {
-        if (errors.hasFieldErrors("email")) {
-            processError("User validation didn't pass - wrong email.");
-        }
-    }
-
-    private void checkBirthDate(Errors errors) {
-        if (errors.hasFieldErrors("birthday")) {
-            processError("User validation didn't pass - wrong birth date.");
-        }
-    }
-
-    private void processError(String message) {
-        log.error(message);
-        throw new ValidationException(message);
     }
 }

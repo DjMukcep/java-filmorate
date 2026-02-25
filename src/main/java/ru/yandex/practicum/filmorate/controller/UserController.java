@@ -1,8 +1,8 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
@@ -11,13 +11,11 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/users")
+@RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
 
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
 
     @GetMapping
     public List<User> getUsers() {
@@ -26,13 +24,13 @@ public class UserController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public User addUser(@Valid @RequestBody User user, Errors errors) {
-        return userService.addUser(user, errors);
+    public User addUser(@Valid @RequestBody User user) {
+        return userService.addUser(user);
     }
 
     @PutMapping
-    public User updateUser(@Valid @RequestBody User newUser, Errors errors) {
-        return userService.updateUser(newUser, errors);
+    public User updateUser(@Valid @RequestBody User newUser) {
+        return userService.updateUser(newUser);
     }
 
     @PutMapping("/{id}/friends/{friendId}")

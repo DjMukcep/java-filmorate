@@ -11,14 +11,14 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class User {
     private Long id;
-    @NotBlank
-    @Email
+    @NotBlank(message = "Поле email обязательно к заполнению")
+    @Email(message = "Обнаружен некорректный email.")
     private String email;
-    @NotBlank
-    @Pattern(regexp = "\\S+")
+    @Pattern(regexp = "\\S+", message = "В имени пользователя пробелы не допускаются.")
+    @NotBlank(message = "Имя пользователя обязательно к заполнению.")
     private String login;
     private String name;
-    @Past
-    @NotNull
+    @Past(message = "Дата дня рожденья должна быть в прошлом.")
+    @NotNull(message = "Необходимо указать свой день рожденья в формате год-месяц-день.")
     private LocalDate birthday;
 }
