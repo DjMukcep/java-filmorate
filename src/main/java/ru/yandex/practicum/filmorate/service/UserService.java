@@ -9,6 +9,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -44,16 +45,16 @@ public class UserService {
     }
 
     public void addFriend(Long id, Long friendId) {
-        checkUserPresence(id, friendId);
         checkUserConflict(id, friendId);
+        checkUserPresence(id, friendId);
 
         log.info("User with id: {} got friend with id: {}", id, friendId);
         userStorage.addFriend(friendId, id);
     }
 
     public void deleteFriend(Long id, Long friendId) {
-        checkUserPresence(id, friendId);
         checkUserConflict(id, friendId);
+        checkUserPresence(id, friendId);
 
         log.info("Friendship broken between user id = {} and user id = {}", id, friendId);
         userStorage.removeFriend(id, friendId);
@@ -77,7 +78,16 @@ public class UserService {
     }
 
     void checkUserPresence(Long... userIds) {
-        Arrays.stream(userIds).forEach(this::findUserOrThrow);
+        Set<Long> userIdSet = Set.of(userIds);
+        List<Long> foundIds = userStorage.findExistentIds(userIdSet);
+
+        if (userIdSet.size() != foundIds.size()) {
+            String missingIds = userIdSet.stream()
+                    .filter(ids -> !foundIds.contains(ids))
+                    .collect(Collectors.toSet()).toString();
+            log.error("Users not found with ids: {}", missingIds);
+            throw new NotFoundException("Не найдены пользователи с id: " + missingIds);
+        }
     }
 
     private void checkUserConflict(Long id, Long friendId) {

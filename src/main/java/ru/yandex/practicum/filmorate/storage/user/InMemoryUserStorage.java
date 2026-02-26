@@ -23,6 +23,15 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
+    public List<Long> findExistentIds(Set<Long> ids) {
+        return users.values()
+                .stream()
+                .map(User::getId)
+                .filter(ids::contains)
+                .toList();
+    }
+
+    @Override
     public void saveUser(User user) {
         friendIds.putIfAbsent(user.getId(), new HashSet<>());
         users.put(user.getId(), user);

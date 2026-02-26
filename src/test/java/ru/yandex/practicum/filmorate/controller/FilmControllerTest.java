@@ -320,7 +320,7 @@ public class FilmControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> filmController.addLike(1L, 9999L));
 
-        assertEquals("Пользователь с id = 9999 не найден.", exception.getMessage());
+        assertEquals("Не найдены пользователи с id: [9999]", exception.getMessage());
     }
 
     @Test
@@ -338,7 +338,7 @@ public class FilmControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> filmController.deleteLike(1L, 9999L));
 
-        assertEquals("Пользователь с id = 9999 не найден.", exception.getMessage());
+        assertEquals("Не найдены пользователи с id: [9999]", exception.getMessage());
     }
 
     void setUpUsers() {
