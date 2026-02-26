@@ -6,12 +6,14 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.validation.BeanPropertyBindingResult;
-import org.springframework.validation.Errors;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,20 +25,18 @@ public class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        userController = new UserController();
+        userController = new UserController(new UserService(new InMemoryUserStorage()));
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             validator = factory.getValidator();
         }
         User user = User.builder()
-                .id(1)
                 .email("test@email.com")
                 .login("test-login")
                 .name("test-name")
                 .birthday(LocalDate.of(2000, 12, 12))
                 .build();
 
-        Errors errors = new BeanPropertyBindingResult(user, "user");
-        userController.addUser(user, errors);
+        userController.addUser(user);
     }
 
     @Test
@@ -48,9 +48,8 @@ public class UserControllerTest {
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = new BeanPropertyBindingResult(validUser, "user");
         Set<ConstraintViolation<User>> violations = validator.validate(validUser);
-        User user = userController.addUser(validUser, errors);
+        User user = userController.addUser(validUser);
 
         assertTrue(violations.isEmpty());
         assertNotNull(user);
@@ -62,7 +61,7 @@ public class UserControllerTest {
     }
 
     @Test
-    void shouldNotAddUserWhenUserEmailIsEmpty() {
+    void shouldHaveValidationErrorsWhenUserEmailIsEmpty() {
         String wrongEmail = "";
         User wrongUser = User.builder()
                 .email(wrongEmail)
@@ -71,17 +70,14 @@ public class UserControllerTest {
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.addUser(wrongUser, errors));
+        Set<ConstraintViolation<User>> violations = validator.validate(wrongUser);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("User validation didn't pass - wrong email.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(wrongEmail, userController.getUsers().getFirst().getEmail());
+        assertEquals("Поле email обязательно к заполнению", message);
     }
 
     @Test
-    void shouldNotAddUserWhenUserEmailIsWrong() {
+    void shouldHaveValidationErrorsWhenUserEmailIsWrong() {
         String wrongEmail = "my-email";
         User wrongUser = User.builder()
                 .email(wrongEmail)
@@ -90,17 +86,14 @@ public class UserControllerTest {
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.addUser(wrongUser, errors));
+        Set<ConstraintViolation<User>> violations = validator.validate(wrongUser);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("User validation didn't pass - wrong email.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(wrongEmail, userController.getUsers().getFirst().getEmail());
+        assertEquals("Обнаружен некорректный email.", message);
     }
 
     @Test
-    void shouldNotAddUserWhenUserEmailIsNull() {
+    void shouldHaveValidationErrorsWhenUserEmailIsNull() {
         User wrongUser = User.builder()
                 .email(null)
                 .login("user-login")
@@ -108,17 +101,14 @@ public class UserControllerTest {
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.addUser(wrongUser, errors));
+        Set<ConstraintViolation<User>> violations = validator.validate(wrongUser);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("User validation didn't pass - wrong email.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(null, userController.getUsers().getFirst().getEmail());
+        assertEquals("Поле email обязательно к заполнению", message);
     }
 
     @Test
-    void shouldNotAddUserWhenLoginIsEmpty() {
+    void shouldHaveValidationErrorsWhenLoginIsEmpty() {
         String wrongLogin = "";
         User wrongUser = User.builder()
                 .email("user@email.com")
@@ -127,17 +117,15 @@ public class UserControllerTest {
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.addUser(wrongUser, errors));
+        Set<ConstraintViolation<User>> violations = validator.validate(wrongUser);
+        boolean hasBlankMessage = violations.stream()
+                .anyMatch(v -> v.getMessage().equals("Имя пользователя обязательно к заполнению."));
 
-        assertEquals("User validation didn't pass - wrong login.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(wrongLogin, userController.getUsers().getFirst().getLogin());
+        assertTrue(hasBlankMessage, "Сообщение о пустом логине не найдено");
     }
 
     @Test
-    void shouldNotAddUserWhenLoginIsNull() {
+    void shouldHaveValidationErrorsWhenLoginIsNull() {
         User wrongUser = User.builder()
                 .email("user@email.com")
                 .login(null)
@@ -145,17 +133,15 @@ public class UserControllerTest {
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.addUser(wrongUser, errors));
+        Set<ConstraintViolation<User>> violations = validator.validate(wrongUser);
+        boolean hasBlankMessage = violations.stream()
+                .anyMatch(v -> v.getMessage().equals("Имя пользователя обязательно к заполнению."));
 
-        assertEquals("User validation didn't pass - wrong login.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(null, userController.getUsers().getFirst().getLogin());
+        assertTrue(hasBlankMessage, "Сообщение о пустом логине не найдено");
     }
 
     @Test
-    void shouldNotAddUserWhenLoginHasSpaces() {
+    void shouldHaveValidationErrorsWhenLoginHasSpaces() {
         String wrongLogin = "my wrong login";
         User wrongUser = User.builder()
                 .email("user@email.com")
@@ -164,13 +150,10 @@ public class UserControllerTest {
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.addUser(wrongUser, errors));
+        Set<ConstraintViolation<User>> violations = validator.validate(wrongUser);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("User validation didn't pass - wrong login.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(wrongLogin, userController.getUsers().getFirst().getLogin());
+        assertEquals("В имени пользователя пробелы не допускаются.", message);
     }
 
     @Test
@@ -183,9 +166,8 @@ public class UserControllerTest {
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = new BeanPropertyBindingResult(validUser, "user");
         Set<ConstraintViolation<User>> violations = validator.validate(validUser);
-        User user = userController.addUser(validUser, errors);
+        User user = userController.addUser(validUser);
 
         assertTrue(violations.isEmpty());
         assertNotNull(user);
@@ -206,9 +188,8 @@ public class UserControllerTest {
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = new BeanPropertyBindingResult(validUser, "user");
         Set<ConstraintViolation<User>> violations = validator.validate(validUser);
-        User user = userController.addUser(validUser, errors);
+        User user = userController.addUser(validUser);
 
         assertTrue(violations.isEmpty());
         assertNotNull(user);
@@ -221,7 +202,7 @@ public class UserControllerTest {
     }
 
     @Test
-    void shouldNotAddUserWhenBirthDateIsNotPast() {
+    void shouldHaveValidationErrorsWhenBirthDateIsNotPast() {
         LocalDate wrongBirthDate = LocalDate.now();
         User wrongUser = User.builder()
                 .email("user@email.com")
@@ -230,28 +211,24 @@ public class UserControllerTest {
                 .birthday(wrongBirthDate)
                 .build();
 
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.addUser(wrongUser, errors));
+        Set<ConstraintViolation<User>> violations = validator.validate(wrongUser);
+        String message = violations.iterator().next().getMessage();
 
-        assertEquals("User validation didn't pass - wrong birth date.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(wrongBirthDate, userController.getUsers().getFirst().getBirthday());
+        assertEquals("Дата дня рожденья должна быть в прошлом.", message);
     }
 
     @Test
     void shouldUpdateUserWhenUserFound() {
         User validUser = User.builder()
-                .id(1)
+                .id(1L)
                 .email("user@email.com")
                 .login("user-login")
                 .name("user-name")
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = new BeanPropertyBindingResult(validUser, "user");
         Set<ConstraintViolation<User>> violations = validator.validate(validUser);
-        User user = userController.updateUser(validUser, errors);
+        User user = userController.updateUser(validUser);
 
         assertTrue(violations.isEmpty());
         assertNotNull(user);
@@ -268,174 +245,33 @@ public class UserControllerTest {
     @Test
     void shouldThrowExceptionWhenUserNotFound() {
         User wrongUser = User.builder()
-                .id(9999)
+                .id(9999L)
                 .email("user@email.com")
                 .login("user-login")
                 .name("user-name")
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.updateUser(wrongUser, errors));
+        NotFoundException exception = assertThrows(
+                NotFoundException.class, () -> userController.updateUser(wrongUser));
 
-        assertEquals("User not found.", exception.getMessage());
+        assertEquals("Пользователь с id = 9999 не найден.", exception.getMessage());
         assertFalse(userController.getUsers().size() > 1);
         assertNotEquals(wrongUser, userController.getUsers().getFirst());
     }
 
     @Test
-    void shouldNotUpdateUserWhenUserEmailIsEmpty() {
-        String wrongEmail = "";
-        User wrongUser = User.builder()
-                .email(wrongEmail)
-                .login("user-login")
-                .name("user-name")
-                .birthday(LocalDate.of(2002, 12, 12))
-                .build();
-
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.updateUser(wrongUser, errors));
-
-        assertEquals("User validation didn't pass - wrong email.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(wrongEmail, userController.getUsers().getFirst().getEmail());
-    }
-
-    @Test
-    void shouldNotUpdateUserWhenUserEmailIsWrong() {
-        String wrongEmail = "my-email";
-        User wrongUser = User.builder()
-                .email(wrongEmail)
-                .login("user-login")
-                .name("user-name")
-                .birthday(LocalDate.of(2002, 12, 12))
-                .build();
-
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.updateUser(wrongUser, errors));
-
-        assertEquals("User validation didn't pass - wrong email.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(wrongEmail, userController.getUsers().getFirst().getEmail());
-    }
-
-    @Test
-    void shouldNotUpdateUserWhenUserEmailIsNull() {
-        User wrongUser = User.builder()
-                .email(null)
-                .login("user-login")
-                .name("user-name")
-                .birthday(LocalDate.of(2002, 12, 12))
-                .build();
-
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.updateUser(wrongUser, errors));
-
-        assertEquals("User validation didn't pass - wrong email.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(null, userController.getUsers().getFirst().getEmail());
-    }
-
-    @Test
-    void shouldNotUpdateUserWhenLoginIsEmpty() {
-        String wrongLogin = "";
-        User wrongUser = User.builder()
-                .email("user@email.com")
-                .login(wrongLogin)
-                .name("user-name")
-                .birthday(LocalDate.of(2002, 12, 12))
-                .build();
-
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.updateUser(wrongUser, errors));
-
-        assertEquals("User validation didn't pass - wrong login.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(wrongLogin, userController.getUsers().getFirst().getLogin());
-    }
-
-    @Test
-    void shouldNotUpdateUserWhenLoginIsNull() {
-        User wrongUser = User.builder()
-                .email("user@email.com")
-                .login(null)
-                .name("user-name")
-                .birthday(LocalDate.of(2002, 12, 12))
-                .build();
-
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.updateUser(wrongUser, errors));
-
-        assertEquals("User validation didn't pass - wrong login.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(null, userController.getUsers().getFirst().getLogin());
-    }
-
-    @Test
-    void shouldNotUpdateUserWhenLoginHasSpaces() {
-        String wrongLogin = "my wrong login";
-        User wrongUser = User.builder()
-                .email("user@email.com")
-                .login(wrongLogin)
-                .name("user-name")
-                .birthday(LocalDate.of(2002, 12, 12))
-                .build();
-
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.updateUser(wrongUser, errors));
-
-        assertEquals("User validation didn't pass - wrong login.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(wrongLogin, userController.getUsers().getFirst().getLogin());
-    }
-
-    @Test
-    void shouldUpdateUserWhenNameIsEmpty() {
-        String name = "";
-        User validUser = User.builder()
-                .id(1)
-                .email("user@email.com")
-                .login("user-login")
-                .name(name)
-                .birthday(LocalDate.of(2002, 12, 12))
-                .build();
-
-        Errors errors = new BeanPropertyBindingResult(validUser, "user");
-        Set<ConstraintViolation<User>> violations = validator.validate(validUser);
-        User user = userController.updateUser(validUser, errors);
-
-        assertNotNull(user);
-        assertTrue(violations.isEmpty());
-        assertFalse(userController.getUsers().size() > 1);
-        assertTrue(userController.getUsers().contains(user));
-
-        assertEquals(1, user.getId());
-        assertEquals(user.getEmail(), validUser.getEmail());
-        assertEquals(user.getLogin(), validUser.getLogin());
-        assertEquals(user.getName(), validUser.getLogin());
-        assertEquals(user.getBirthday(), validUser.getBirthday());
-    }
-
-    @Test
     void shouldUpdateUserWhenNameIsNull() {
         User validUser = User.builder()
-                .id(1)
+                .id(1L)
                 .email("user@email.com")
                 .login("user-login")
                 .name(null)
                 .birthday(LocalDate.of(2002, 12, 12))
                 .build();
 
-        Errors errors = new BeanPropertyBindingResult(validUser, "user");
         Set<ConstraintViolation<User>> violations = validator.validate(validUser);
-        User user = userController.updateUser(validUser, errors);
+        User user = userController.updateUser(validUser);
 
         assertNotNull(user);
         assertTrue(violations.isEmpty());
@@ -450,29 +286,109 @@ public class UserControllerTest {
     }
 
     @Test
-    void shouldNotUpdateUserWhenBirthDateIsNotPast() {
-        LocalDate wrongBirthDate = LocalDate.now();
-        User wrongUser = User.builder()
+    void shouldAddFriendWhenValidFriendPassed() {
+        User friend = User.builder()
                 .email("user@email.com")
                 .login("user-login")
-                .name("user-name")
-                .birthday(wrongBirthDate)
+                .name("friend-name")
+                .birthday(LocalDate.of(2002, 12, 12))
                 .build();
+        userController.addUser(friend);
 
-        Errors errors = processErrors(wrongUser);
-        ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.updateUser(wrongUser, errors));
+        userController.addFriend(1L, friend.getId());
+        List<User> friends = userController.getFriends(1L);
+        List<User> friendOfFriend = userController.getFriends(friend.getId());
 
-        assertEquals("User validation didn't pass - wrong birth date.", exception.getMessage());
-        assertFalse(userController.getUsers().size() > 1);
-        assertNotEquals(wrongBirthDate, userController.getUsers().getFirst().getBirthday());
+        assertTrue(friends.contains(friend));
+        assertEquals(1L, friendOfFriend.getFirst().getId());
     }
 
-    Errors processErrors(User wrongUser) {
-        Errors errors = new BeanPropertyBindingResult(wrongUser, "user");
-        for (ConstraintViolation<User> v : validator.validate(wrongUser)) {
-            errors.rejectValue(v.getPropertyPath().toString(), "invalid", v.getMessage());
-        }
-        return errors;
+    @Test
+    void shouldNotAddFriendWhenWithIdSameAsUserId() {
+        ValidationException exception = assertThrows(
+                ValidationException.class, () -> userController.addFriend(1L, 1L));
+
+        assertEquals("Попытка добавить или удалить друга с тем же id, что и у пользователя.", exception.getMessage());
+        assertTrue(userController.getFriends(1L).isEmpty());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenTryDeleteFriendWithIdSameAsUserId() {
+        ValidationException exception = assertThrows(
+                ValidationException.class, () -> userController.deleteFriend(1L, 1L));
+
+        assertEquals("Попытка добавить или удалить друга с тем же id, что и у пользователя.", exception.getMessage());
+        assertTrue(userController.getFriends(1L).isEmpty());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenIdFriendNotFoundWhileAddFriend() {
+        NotFoundException exception = assertThrows(
+                NotFoundException.class, () -> userController.addFriend(1L, 999L));
+
+        assertEquals("Не найдены пользователи с id: [999]", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenIdFriendNotFoundWhileDeleteFriend() {
+        NotFoundException exception = assertThrows(
+                NotFoundException.class, () -> userController.deleteFriend(1L, 999L));
+
+        assertEquals("Не найдены пользователи с id: [999]", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenIdUserNotFoundWhileAddFriend() {
+        NotFoundException exception = assertThrows(
+                NotFoundException.class, () -> userController.addFriend(999L, 1L));
+
+        assertEquals("Не найдены пользователи с id: [999]", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenIdUserNotFoundWhileDeleteFriend() {
+        NotFoundException exception = assertThrows(
+                NotFoundException.class, () -> userController.deleteFriend(999L, 1L));
+
+        assertEquals("Не найдены пользователи с id: [999]", exception.getMessage());
+    }
+
+    @Test
+    void shouldReturnRightCommonFriends() {
+        setUpUserFriends();
+        List<User> commFriends = userController.getCommonFriends(1L, 4L);
+        assertEquals(1, commFriends.size());
+        assertEquals(3, commFriends.getFirst().getId());
+    }
+
+    void setUpUserFriends() {
+        User user2 = User.builder()
+                .email("test@email.com")
+                .login("test-login")
+                .name("name1")
+                .birthday(LocalDate.of(2000, 12, 12))
+                .build();
+        User user3 = User.builder()
+                .email("test@email.com")
+                .login("test-login")
+                .name("name2")
+                .birthday(LocalDate.of(2000, 12, 12))
+                .build();
+        User user4 = User.builder()
+                .email("test@email.com")
+                .login("test-login")
+                .name("name3")
+                .birthday(LocalDate.of(2000, 12, 12))
+                .build();
+
+        userController.addUser(user2);
+        userController.addUser(user3);
+        userController.addUser(user4);
+
+        userController.addFriend(1L, user2.getId());
+        userController.addFriend(1L, user3.getId());
+        userController.addFriend(1L, user4.getId());
+
+        userController.addFriend(user4.getId(), user3.getId());
     }
 }

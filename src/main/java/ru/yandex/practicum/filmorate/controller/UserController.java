@@ -1,89 +1,57 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.validation.Errors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/users")
-@Slf4j
+@RequiredArgsConstructor
 public class UserController {
 
-    private final List<User> users = new ArrayList<>();
+    private final UserService userService;
+
 
     @GetMapping
     public List<User> getUsers() {
-        return List.copyOf(users);
+        return userService.getUsers();
     }
 
     @PostMapping
-    public User addUser(@Valid @RequestBody User user, Errors errors) {
-        validate(user, errors);
-        int id = users.size() + 1;
-        user.setId(id);
-        users.add(user);
-        log.info("Added user: {}", user.getName());
-        return user;
+    @ResponseStatus(HttpStatus.CREATED)
+    public User addUser(@Valid @RequestBody User user) {
+        return userService.addUser(user);
     }
 
     @PutMapping
-    public User updateUser(@Valid @RequestBody User newUser, Errors errors) {
-        validate(newUser, errors);
-
-        return users.stream()
-                .filter(user -> user.getId().equals(newUser.getId()))
-                .findFirst()
-                .map(user -> processUpdateUser(user, newUser))
-                .orElseThrow(() -> new ValidationException("User not found."));
+    public User updateUser(@Valid @RequestBody User newUser) {
+        return userService.updateUser(newUser);
     }
 
-    private User processUpdateUser(User oldUser, User newUser) {
-        int index = users.indexOf(oldUser);
-        newUser.setId(oldUser.getId());
-        users.set(index, newUser);
-        log.info("Updated user with id: {}", newUser.getId());
-        return newUser;
+    @PutMapping("/{id}/friends/{friendId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void addFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        userService.addFriend(friendId, id);
     }
 
-    private void validate(@Valid User user, Errors errors) {
-        checkLogin(errors);
-        checkName(user);
-        checkEmail(errors);
-        checkBirthDate(errors);
+    @DeleteMapping("/{id}/friends/{friendId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        userService.deleteFriend(id, friendId);
     }
 
-    private void checkLogin(Errors errors) {
-        if (errors.hasFieldErrors("login")) {
-            processError("User validation didn't pass - wrong login.");
-        }
+    @GetMapping("/{id}/friends")
+    public List<User> getFriends(@PathVariable Long id) {
+        return userService.getFriends(id);
     }
 
-    private void checkName(User user) {
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-    }
-
-    private void checkEmail(Errors errors) {
-        if (errors.hasFieldErrors("email")) {
-            processError("User validation didn't pass - wrong email.");
-        }
-    }
-
-    private void checkBirthDate(Errors errors) {
-        if (errors.hasFieldErrors("birthday")) {
-            processError("User validation didn't pass - wrong birth date.");
-        }
-    }
-
-    private void processError(String message) {
-        log.error(message);
-        throw new ValidationException(message);
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public List<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
+        return userService.getCommonFriends(id, otherId);
     }
 }
