@@ -1,5 +1,6 @@
-package ru.yandex.practicum.filmorate.model;
+package ru.yandex.practicum.filmorate.model.film;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -7,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 
 @Data
@@ -24,4 +26,8 @@ public class Film {
     @NotNull(message = "Длительность фильма должна быть указана.")
     @Positive(message = "Продолжительность фильма должна быть положительной.")
     private Integer duration;
+    @JsonIgnore //пока нет postman тестов игнорим в json
+    private List<Genre> genres;
+    @JsonIgnore //пока нет postman тестов игнорим в json
+    private Rating rating;
 }

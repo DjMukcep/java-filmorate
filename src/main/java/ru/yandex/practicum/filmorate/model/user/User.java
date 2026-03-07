@@ -1,9 +1,11 @@
-package ru.yandex.practicum.filmorate.model;
+package ru.yandex.practicum.filmorate.model.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @Data
 @Builder
@@ -21,4 +23,6 @@ public class User {
     @Past(message = "Дата дня рожденья должна быть в прошлом.")
     @NotNull(message = "Необходимо указать свой день рожденья в формате год-месяц-день.")
     private LocalDate birthday;
+    @JsonIgnore //пока нет postman тестов игнорим в json
+    private Map<Long,FriendshipStatus> friendshipStatus;
 }

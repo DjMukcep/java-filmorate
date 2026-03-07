@@ -32,6 +32,7 @@ public class ErrorHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleOtherErrors(final Throwable e) {
+        log.error("Server error {}: ", e.getMessage(), e);
         return new ErrorResponse("Произошла непредвиденная ошибка: " + e.getMessage());
     }
 
@@ -42,7 +43,7 @@ public class ErrorHandler {
         e.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
             String errorMsg = error.getDefaultMessage();
-            log.error(errorMsg);
+            log.error("Error validating {}: {}", fieldName, errorMsg);
             errors.put(fieldName, errorMsg);
         });
 
