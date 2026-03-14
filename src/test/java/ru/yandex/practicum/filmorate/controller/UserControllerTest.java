@@ -10,7 +10,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.user.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.memory.InMemoryUserStorage;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -255,7 +255,7 @@ public class UserControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> userController.updateUser(wrongUser));
 
-        assertEquals("Пользователь с id = 9999 не найден.", exception.getMessage());
+        assertEquals("Пользователь с id: [9999] не найден.", exception.getMessage());
         assertFalse(userController.getUsers().size() > 1);
         assertNotEquals(wrongUser, userController.getUsers().getFirst());
     }
@@ -300,7 +300,7 @@ public class UserControllerTest {
         List<User> friendOfFriend = userController.getFriends(friend.getId());
 
         assertTrue(friends.contains(friend));
-        assertEquals(1L, friendOfFriend.getFirst().getId());
+        assertTrue(friendOfFriend.isEmpty());
     }
 
     @Test
@@ -326,7 +326,7 @@ public class UserControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> userController.addFriend(1L, 999L));
 
-        assertEquals("Не найдены пользователи с id: [999]", exception.getMessage());
+        assertEquals("Пользователь с id: [999] не найден.", exception.getMessage());
     }
 
     @Test
@@ -334,7 +334,7 @@ public class UserControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> userController.deleteFriend(1L, 999L));
 
-        assertEquals("Не найдены пользователи с id: [999]", exception.getMessage());
+        assertEquals("Пользователь с id: [999] не найден.", exception.getMessage());
     }
 
     @Test
@@ -342,7 +342,7 @@ public class UserControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> userController.addFriend(999L, 1L));
 
-        assertEquals("Не найдены пользователи с id: [999]", exception.getMessage());
+        assertEquals("Пользователь с id: [999] не найден.", exception.getMessage());
     }
 
     @Test
@@ -350,7 +350,7 @@ public class UserControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> userController.deleteFriend(999L, 1L));
 
-        assertEquals("Не найдены пользователи с id: [999]", exception.getMessage());
+        assertEquals("Пользователь с id: [999] не найден.", exception.getMessage());
     }
 
     @Test

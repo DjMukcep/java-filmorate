@@ -13,8 +13,8 @@ import ru.yandex.practicum.filmorate.model.film.Film;
 import ru.yandex.practicum.filmorate.model.user.User;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.memory.InMemoryFilmStorage;
+import ru.yandex.practicum.filmorate.storage.memory.InMemoryUserStorage;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -320,7 +320,7 @@ public class FilmControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> filmController.addLike(1L, 9999L));
 
-        assertEquals("Не найдены пользователи с id: [9999]", exception.getMessage());
+        assertEquals("Пользователь с id: [9999] не найден.", exception.getMessage());
     }
 
     @Test
@@ -338,7 +338,7 @@ public class FilmControllerTest {
         NotFoundException exception = assertThrows(
                 NotFoundException.class, () -> filmController.deleteLike(1L, 9999L));
 
-        assertEquals("Не найдены пользователи с id: [9999]", exception.getMessage());
+        assertEquals("Пользователь с id: [9999] не найден.", exception.getMessage());
     }
 
     void setUpUsers() {

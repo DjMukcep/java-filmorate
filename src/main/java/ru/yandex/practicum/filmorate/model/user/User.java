@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.Map;
 
 @Data
@@ -23,6 +24,15 @@ public class User {
     @Past(message = "Дата дня рожденья должна быть в прошлом.")
     @NotNull(message = "Необходимо указать свой день рожденья в формате год-месяц-день.")
     private LocalDate birthday;
-    @JsonIgnore //пока нет postman тестов игнорим в json
-    private Map<Long,FriendshipStatus> friendshipStatus;
+    @JsonIgnore
+    @Builder.Default
+    private Map<Long,FriendshipStatus> friends = new HashMap<>();
+
+    public void addFriend(Long friendId, FriendshipStatus status) {
+        friends.put(friendId, status);
+    }
+
+    public void removeFriend(Long friendId) {
+        friends.remove(friendId);
+    }
 }
