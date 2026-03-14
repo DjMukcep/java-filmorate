@@ -8,15 +8,14 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 
 import java.util.Map;
 
-
 @Getter
 @RequiredArgsConstructor
 public enum Rating {
-    G(1,"G"),
-    PG(2,"PG"),
-    PG13(3,"PG-13"),
-    R(4,"R"),
-    NC17(5,"NC-17");
+    G(1, "G"),
+    PG(2, "PG"),
+    PG13(3, "PG-13"),
+    R(4, "R"),
+    NC17(5, "NC-17");
 
     private final long id;
     private final String name;

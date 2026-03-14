@@ -26,7 +26,7 @@ public class User {
     private LocalDate birthday;
     @JsonIgnore
     @Builder.Default
-    private Map<Long,FriendshipStatus> friends = new HashMap<>();
+    private Map<Long, FriendshipStatus> friends = new HashMap<>();
 
     public void addFriend(Long friendId, FriendshipStatus status) {
         friends.put(friendId, status);

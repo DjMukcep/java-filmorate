@@ -45,11 +45,11 @@ public class UserService {
         log.info("User with id: {} got friend with id: {}", userId, friendId);
 
         if (friend.getFriends().containsKey(userId)) {
-            userStorage.setFriendStatus(user,friendId, FriendshipStatus.CONFIRMED);
-            userStorage.setFriendStatus(friend,userId,FriendshipStatus.CONFIRMED);
+            userStorage.setFriendStatus(user, friendId, FriendshipStatus.CONFIRMED);
+            userStorage.setFriendStatus(friend, userId, FriendshipStatus.CONFIRMED);
             return;
         }
-        userStorage.setFriendStatus(user,friendId,FriendshipStatus.UNCONFIRMED);
+        userStorage.setFriendStatus(user, friendId, FriendshipStatus.UNCONFIRMED);
     }
 
     public void deleteFriend(Long id, Long friendId) {
@@ -59,7 +59,7 @@ public class UserService {
 
         log.info("Friendship broken between user id = {} and user id = {}", id, friendId);
         if (friend.getFriends().containsKey(id)) {
-            userStorage.setFriendStatus(friend,id,FriendshipStatus.UNCONFIRMED);
+            userStorage.setFriendStatus(friend, id, FriendshipStatus.UNCONFIRMED);
         }
         userStorage.removeFriend(id, friendId);
     }

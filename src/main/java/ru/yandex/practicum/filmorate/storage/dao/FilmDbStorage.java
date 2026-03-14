@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.dao;
 
 import jakarta.annotation.Nonnull;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -101,7 +100,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
     @Override
     public Rating getFilmRatingById(Long mpaId) {
         try {
-            return  jdbc.queryForObject(
+            return jdbc.queryForObject(
                     queryHandler.get(FIND_RATING),
                     (rs, rowNum) -> Rating.findById(rs.getLong("rating_id")),
                     mpaId
@@ -132,7 +131,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         try {
             return jdbc.queryForObject(
                     queryHandler.get(FIND_GENRE),
-                    (rs, rowNum) ->  Genre.fromId(rs.getLong("genre_id")),
+                    (rs, rowNum) -> Genre.fromId(rs.getLong("genre_id")),
                     genreId
             );
         } catch (EmptyResultDataAccessException e) {
@@ -146,7 +145,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     private Set<Genre> getGenresByFilmId(Long filmId) {
         return new HashSet<>(jdbc.query(queryHandler.get(FIND_FILM_GENRES),
-                (rs, rowNum) -> Genre.fromId(rs.getLong("genre_id")),filmId));
+                (rs, rowNum) -> Genre.fromId(rs.getLong("genre_id")), filmId));
     }
 
     private void saveGenres(Film film) {
@@ -155,7 +154,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         }
 
         List<Genre> genres = new ArrayList<>(film.getGenres());
-        jdbc.batchUpdate(queryHandler.get(ADD_FILM_GENRE), getBatchSetter(film.getId(),  genres));
+        jdbc.batchUpdate(queryHandler.get(ADD_FILM_GENRE), getBatchSetter(film.getId(), genres));
     }
 
     private BatchPreparedStatementSetter getBatchSetter(Long filmId, List<Genre> genres) {

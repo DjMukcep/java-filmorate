@@ -34,11 +34,11 @@ public class Film {
     @Builder.Default
     private Set<Long> userIds = new HashSet<>();
 
-    public void  addLike(Long id){
+    public void addLike(Long id) {
         userIds.add(id);
     }
 
-    public void  removeLike(Long id){
+    public void removeLike(Long id) {
         userIds.remove(id);
     }
 

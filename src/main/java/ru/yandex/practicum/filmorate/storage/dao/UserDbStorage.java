@@ -70,11 +70,11 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
 
     @Override
     public List<User> getFriends(User user) {
-        return findMany(queryHandler.get(FIND_USER_FRIENDS),user.getId());
+        return findMany(queryHandler.get(FIND_USER_FRIENDS), user.getId());
     }
 
     @Override
     public Optional<User> getUserById(Long userId) {
-        return findOne(queryHandler.get(FIND_USER),userId);
+        return findOne(queryHandler.get(FIND_USER), userId);
     }
 }

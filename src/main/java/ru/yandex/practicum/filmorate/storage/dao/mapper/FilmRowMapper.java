@@ -7,7 +7,6 @@ import ru.yandex.practicum.filmorate.model.film.Rating;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.HashSet;
 
 @Component

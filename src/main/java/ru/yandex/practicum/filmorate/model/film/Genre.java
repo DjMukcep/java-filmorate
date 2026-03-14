@@ -12,12 +12,12 @@ import java.util.Map;
 @Getter
 @RequiredArgsConstructor
 public enum Genre {
-    COMEDY(1,"Комедия"),
-    DRAMA(2,"Драма"),
-    CARTOON(3,"Мультфильм"),
-    THRILLER(4,"Триллер"),
-    DOCUMENTARY(5,"Документальный"),
-    ACTION(6,"Боевик");
+    COMEDY(1, "Комедия"),
+    DRAMA(2, "Драма"),
+    CARTOON(3, "Мультфильм"),
+    THRILLER(4, "Триллер"),
+    DOCUMENTARY(5, "Документальный"),
+    ACTION(6, "Боевик");
 
     private final long id;
     private final String name;
@@ -43,6 +43,6 @@ public enum Genre {
 
     @JsonValue
     public Map<String, Object> toJson() {
-        return  Map.of("id", this.id, "name", this.name);
+        return Map.of("id", this.id, "name", this.name);
     }
 }
