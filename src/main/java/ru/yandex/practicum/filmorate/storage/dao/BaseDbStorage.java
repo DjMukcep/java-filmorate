@@ -6,7 +6,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import ru.yandex.practicum.filmorate.exception.InternalServerException;
-import ru.yandex.practicum.filmorate.storage.dao.query.QueryHandler;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -19,7 +18,6 @@ import java.util.Optional;
 public class BaseDbStorage<T> {
     protected final JdbcTemplate jdbc;
     protected final RowMapper<T> mapper;
-    protected final QueryHandler queryHandler;
 
     protected Optional<T> findOne(String query, Object... args) {
         try {

@@ -1,8 +1,6 @@
 package ru.yandex.practicum.filmorate.storage;
 
-import ru.yandex.practicum.filmorate.model.film.Film;
-import ru.yandex.practicum.filmorate.model.film.Genre;
-import ru.yandex.practicum.filmorate.model.film.Rating;
+import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,12 +23,4 @@ public interface FilmStorage {
     Optional<Film> getFilmById(Long filmId);
 
     Set<Long> getLikes(Long filmId);
-
-    Rating getFilmRatingById(Long mpaId);
-
-    List<Rating> getFilmRatings();
-
-    List<Genre> getGenres();
-
-    Genre getGenreById(Long genreId);
 }

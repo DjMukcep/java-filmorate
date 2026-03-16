@@ -2,19 +2,27 @@ package ru.yandex.practicum.filmorate.storage.memory;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.model.film.Film;
-import ru.yandex.practicum.filmorate.model.film.Genre;
-import ru.yandex.practicum.filmorate.model.film.Rating;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Rating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @Qualifier("MEM")
 public class InMemoryFilmStorage implements FilmStorage {
 
     private final Map<Long, Film> films = new HashMap<>();
+    private final InMemoryGenreStorage genreStorage;
+    private final InMemoryMpaStorage mpaStorage;
     private long lastId;
+
+    public InMemoryFilmStorage(InMemoryGenreStorage genreStorage, InMemoryMpaStorage mpaStorage) {
+        this.genreStorage = genreStorage;
+        this.mpaStorage = mpaStorage;
+    }
 
     @Override
     public List<Film> getFilms() {
@@ -29,13 +37,18 @@ public class InMemoryFilmStorage implements FilmStorage {
     @Override
     public Film addFilm(Film film) {
         Long id = ++lastId;
+
         film.setId(id);
+        setGenres(film);
+        setRating(film);
         films.put(film.getId(), film);
         return film;
     }
 
     @Override
     public Film updateFilm(Film film) {
+        setGenres(film);
+        setRating(film);
         films.put(film.getId(), film);
         return film;
     }
@@ -56,26 +69,6 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public Rating getFilmRatingById(Long mpaId) {
-        return Rating.findById(mpaId);
-    }
-
-    @Override
-    public List<Rating> getFilmRatings() {
-        return Arrays.asList(Rating.values());
-    }
-
-    @Override
-    public List<Genre> getGenres() {
-        return Arrays.asList(Genre.values());
-    }
-
-    @Override
-    public Genre getGenreById(Long genreId) {
-        return Genre.fromId(genreId);
-    }
-
-    @Override
     public List<Film> getMostPopularFilms(int count) {
         return films.values()
                 .stream()
@@ -84,4 +77,21 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .toList();
     }
 
+    private void setGenres(Film film) {
+        Set<Long> incomeGenreIds = film.getGenres()
+                .stream()
+                .map(Genre::getId)
+                .collect(Collectors.toSet());
+
+        Set<Genre> genres = genreStorage.getGenres().stream()
+                .filter(genre -> incomeGenreIds.contains(genre.getId()))
+                .collect(Collectors.toSet());
+        film.setGenres(genres);
+    }
+
+    private void setRating(Film film) {
+        Long mpaId = film.getMpa().getId();
+        Optional<Rating> rating = mpaStorage.getFilmRatingById(mpaId);
+        rating.ifPresent(film::setMpa);
+    }
 }

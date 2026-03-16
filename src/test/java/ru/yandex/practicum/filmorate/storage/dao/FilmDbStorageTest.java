@@ -7,13 +7,13 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.model.film.Film;
-import ru.yandex.practicum.filmorate.model.film.Genre;
-import ru.yandex.practicum.filmorate.model.film.Rating;
-import ru.yandex.practicum.filmorate.model.user.User;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Rating;
+import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.dao.mapper.FilmRowMapper;
+import ru.yandex.practicum.filmorate.storage.dao.mapper.GenreRowMapper;
 import ru.yandex.practicum.filmorate.storage.dao.mapper.UserRowMapper;
-import ru.yandex.practicum.filmorate.storage.dao.query.QueryHandler;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @JdbcTest
 @AutoConfigureTestDatabase
-@Import({FilmDbStorage.class, QueryHandler.class, FilmRowMapper.class,
-        UserDbStorage.class, UserRowMapper.class})
+@Import({FilmDbStorage.class, FilmRowMapper.class,
+        UserDbStorage.class, UserRowMapper.class, GenreRowMapper.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class FilmDbStorageTest {
 
@@ -35,13 +35,15 @@ public class FilmDbStorageTest {
 
     @Test
     void addFilmTest() {
+        Genre action = new Genre(6L,"Боевик");
+        Genre comedy = new Genre(1L,"Комедия");
         Film film = Film.builder()
                 .name("Побег из Шоушенка")
                 .description("История одного заключения")
                 .releaseDate(LocalDate.of(1994, 9, 10))
                 .duration(142)
-                .mpa(Rating.findById(1))
-                .genres(Set.of(Genre.ACTION, Genre.COMEDY))
+                .mpa(new Rating(1L,""))
+                .genres(Set.of(action,comedy))
                 .build();
 
         Film savedFilm = storage.addFilm(film);
@@ -54,19 +56,22 @@ public class FilmDbStorageTest {
                     assertThat(f.getMpa().getId()).isEqualTo(1L);
                     assertThat(f.getDuration()).isEqualTo(142);
                     assertThat(f.getReleaseDate()).isEqualTo(LocalDate.of(1994, 9, 10));
-                    assertThat(f.getGenres()).containsExactly(Genre.COMEDY, Genre.ACTION);
+                    assertThat(f.getGenres()).containsExactly(comedy, action);
                 });
     }
 
     @Test
     void updateFilmTest() {
+        Genre action = new Genre(6L,"Боевик");
+        Genre comedy = new Genre(1L,"Комедия");
+        Genre drama = new Genre(2L,"Драма");
         Film film = Film.builder()
                 .name("Старое название")
                 .description("Старое описание")
                 .releaseDate(LocalDate.of(2000, 1, 1))
                 .duration(100)
-                .mpa(Rating.findById(1))
-                .genres(Set.of(Genre.ACTION))
+                .mpa(new Rating(1L,"G"))
+                .genres(Set.of(action))
                 .build();
         Film savedFilm = storage.addFilm(film);
         Long filmId = savedFilm.getId();
@@ -77,8 +82,8 @@ public class FilmDbStorageTest {
                 .description("Новое описание")
                 .releaseDate(LocalDate.of(2020, 12, 12))
                 .duration(180)
-                .mpa(Rating.findById(2)) // Другой рейтинг
-                .genres(Set.of(Genre.COMEDY, Genre.DRAMA))
+                .mpa(new Rating(2L,"")) // Другой рейтинг
+                .genres(Set.of(comedy, drama))
                 .build();
 
         storage.updateFilm(updatedFilm);
@@ -92,8 +97,8 @@ public class FilmDbStorageTest {
                     assertThat(f.getDuration()).isEqualTo(180);
                     assertThat(f.getGenres())
                             .hasSize(2)
-                            .containsExactlyInAnyOrder(Genre.COMEDY, Genre.DRAMA)
-                            .doesNotContain(Genre.ACTION);
+                            .containsExactlyInAnyOrder(comedy, drama)
+                            .doesNotContain(action);
                 });
     }
 
@@ -109,12 +114,12 @@ public class FilmDbStorageTest {
         Film filmA = storage.addFilm(Film.builder()
                 .name("Фильм А").description("Описание А").duration(100)
                 .releaseDate(LocalDate.of(2020, 1, 1))
-                .mpa(Rating.findById(1)).build());
+                .mpa(new Rating(1L,"G")).build());
 
         Film filmB = storage.addFilm(Film.builder()
                 .name("Фильм Б").description("Описание Б").duration(120)
                 .releaseDate(LocalDate.of(2021, 1, 1))
-                .mpa(Rating.findById(1)).build());
+                .mpa(new Rating(1L,"G")).build());
 
         storage.addLike(filmA, user1.getId());
         storage.addLike(filmA, user2.getId());
@@ -138,12 +143,12 @@ public class FilmDbStorageTest {
         Film filmA = storage.addFilm(Film.builder()
                 .name("Фильм А").description("Описание А").duration(100)
                 .releaseDate(LocalDate.of(2020, 1, 1))
-                .mpa(Rating.findById(1)).build());
+                .mpa(new Rating(1L,"G")).build());
 
         Film filmB = storage.addFilm(Film.builder()
                 .name("Фильм Б").description("Описание Б").duration(120)
                 .releaseDate(LocalDate.of(2021, 1, 1))
-                .mpa(Rating.findById(1)).build());
+                .mpa(new Rating(1L,"G")).build());
 
         // обоим ставим по лайку
         storage.addLike(filmA, user.getId());
@@ -166,11 +171,11 @@ public class FilmDbStorageTest {
     @Test
     void getMostPopularFilmsTest() {
         Film film1 = storage.addFilm(Film.builder().name("Фильм 1").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(Rating.findById(1)).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
         Film film2 = storage.addFilm(Film.builder().name("Фильм 2").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(Rating.findById(1)).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
         Film film3 = storage.addFilm(Film.builder().name("Фильм 3").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(Rating.findById(1)).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
 
         // Создаем пользователей для лайков
         User u1 = userStorage.addUser(User.builder().email("1@m.ru").login("l1")
@@ -199,11 +204,11 @@ public class FilmDbStorageTest {
     @Test
     void getFilmsTest() {
         Film film1 = storage.addFilm(Film.builder().name("Фильм 1").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(Rating.findById(1)).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
         Film film2 = storage.addFilm(Film.builder().name("Фильм 2").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(Rating.findById(1)).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
         Film film3 = storage.addFilm(Film.builder().name("Фильм 3").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(Rating.findById(1)).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
 
         List<Film> films = storage.getFilms();
 
@@ -215,8 +220,9 @@ public class FilmDbStorageTest {
 
     @Test
     void getFilmByIdTest() {
-        Optional<Film> films = storage.getFilmById(999L);
-        assertThat(films).isEmpty();
+        Optional<Film> unfoundedFilm = storage.getFilmById(999L);
+
+        assertThat(unfoundedFilm).isNotPresent();
     }
 
     @Test
@@ -224,7 +230,7 @@ public class FilmDbStorageTest {
         Film film = storage.addFilm(Film.builder()
                 .name("Начало").description("Сны").duration(148)
                 .releaseDate(LocalDate.of(2010, 7, 8))
-                .mpa(Rating.findById(1)).build());
+                .mpa(new Rating(1L,"G")).build());
 
         User user1 = userStorage.addUser(User.builder()
                 .email("u1@mail.ru").login("l1").name("N1").birthday(LocalDate.now()).build());
@@ -243,64 +249,5 @@ public class FilmDbStorageTest {
 
         // Проверка "чужих" лайков: если у фильма нет лайков, должен быть пустой сет
         assertThat(storage.getLikes(999L)).isEmpty();
-    }
-
-    @Test
-    void getFilmRatingByIdTest() {
-        // Проверяем существующий рейтинг
-        Rating rating = storage.getFilmRatingById(1L);
-
-        assertThat(rating)
-                .isNotNull()
-                .hasFieldOrPropertyWithValue("id", 1L)
-                .hasFieldOrPropertyWithValue("name", "G");
-
-        // Проверяем обработку ошибки на несуществующий рейтинг
-        NotFoundException exception = assertThrows(
-                NotFoundException.class,
-                () -> storage.getFilmRatingById(999L)
-        );
-
-        assertThat(exception.getMessage()).contains("Rating with id: 999 not found");
-    }
-
-    @Test
-    void getFilmRatingsTest() {
-        List<Rating> ratings = storage.getFilmRatings();
-
-        assertThat(ratings)
-                .hasSize(5)
-                .extracting(Rating::getName)
-                .containsExactlyInAnyOrder("G", "PG", "PG-13", "R", "NC-17");
-    }
-
-    @Test
-    void getGenresTest() {
-        List<Genre> genres = storage.getGenres();
-
-        assertThat(genres)
-                .hasSize(6)
-                .extracting(Genre::getName)
-                .containsExactlyInAnyOrder(
-                        "Комедия", "Драма", "Мультфильм", "Триллер", "Документальный", "Боевик");
-    }
-
-    @Test
-    void getGenreByIdTest() {
-        // Проверяем существующий жанр
-        Genre genre = storage.getGenreById(1L);
-
-        assertThat(genre)
-                .isNotNull()
-                .hasFieldOrPropertyWithValue("id", 1L)
-                .hasFieldOrPropertyWithValue("name", "Комедия");
-
-        // Проверяем обработку ошибки на несуществующий ID
-        NotFoundException exception = assertThrows(
-                NotFoundException.class,
-                () -> storage.getGenreById(99L)
-        );
-
-        assertThat(exception.getMessage()).contains("Genre with id: 99 not found");
     }
 }

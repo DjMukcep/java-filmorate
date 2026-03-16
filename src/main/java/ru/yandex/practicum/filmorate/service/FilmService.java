@@ -6,15 +6,18 @@ import org.springframework.stereotype.Service;
 
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.film.Film;
-import ru.yandex.practicum.filmorate.model.film.Genre;
-import ru.yandex.practicum.filmorate.model.film.Rating;
-import ru.yandex.practicum.filmorate.model.user.User;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Rating;
+import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.GenreStorage;
+import ru.yandex.practicum.filmorate.storage.MpaStorage;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -22,11 +25,17 @@ public class FilmService {
 
     private final FilmStorage filmStorage;
     private final UserService userService;
+    private final MpaStorage mpaStorage;
+    private final GenreStorage genreStorage;
 
 
-    public FilmService(@Qualifier("DB") FilmStorage filmStorage, UserService userService) {
+    public FilmService(
+            @Qualifier("DB") FilmStorage filmStorage, @Qualifier("DB") MpaStorage mpaStorage,
+            @Qualifier("DB") GenreStorage genreStorage, UserService userService) {
         this.filmStorage = filmStorage;
         this.userService = userService;
+        this.mpaStorage = mpaStorage;
+        this.genreStorage = genreStorage;
     }
 
     public List<Film> getFilms() {
@@ -40,21 +49,23 @@ public class FilmService {
     public Film addFilm(Film film) {
         validateFilm(film);
 
+        Film inStorageFilm = filmStorage.addFilm(film);
         log.info("Added film: {}", film.getName());
-        return filmStorage.addFilm(film);
+        return inStorageFilm;
     }
 
     public Film updateFilm(Film newFilm) {
         validateFilm(newFilm);
         findFilmOrThrow(newFilm.getId());
 
+        Film updatedFilm = filmStorage.updateFilm(newFilm);
         log.info("Updated film with id: {}", newFilm.getId());
-        return filmStorage.updateFilm(newFilm);
+        return updatedFilm;
     }
 
     public void addLike(Long filmId, Long userId) {
         Film film = findFilmOrThrow(filmId);
-        User user = userService.findUserOrThrow(userId);
+        User user = userService.getUserById(userId);
 
         if (film.getUserIds().contains(user.getId())) {
             throw new ValidationException(
@@ -73,6 +84,7 @@ public class FilmService {
         if (count == null) {
             count = 10;
         }
+
         return filmStorage.getMostPopularFilms(count);
     }
 
@@ -81,25 +93,21 @@ public class FilmService {
     }
 
     public Rating getFilmRatingById(Long mpaId) {
-        return filmStorage.getFilmRatingById(mpaId);
+        return findRatingOrThrow(mpaId);
     }
 
     public List<Rating> getAllFilmRatings() {
-        return filmStorage.getFilmRatings();
+        return mpaStorage.getFilmRatings();
     }
 
     public Genre getGenreById(Long genreId) {
-        return filmStorage.getGenreById(genreId);
+        return findGenreOrThrow(genreId);
     }
 
     public List<Genre> getAllGenres() {
-        return filmStorage.getGenres();
+        return genreStorage.getGenres();
     }
 
-    private void checkPresence(Long filmId, Long userId) {
-        findFilmOrThrow(filmId);
-        userService.findUserOrThrow(userId);
-    }
 
     private Film findFilmOrThrow(Long filmId) {
         return filmStorage.getFilmById(filmId).orElseThrow(() -> {
@@ -108,8 +116,29 @@ public class FilmService {
         });
     }
 
+    private Rating findRatingOrThrow(Long ratingId) {
+        return mpaStorage.getFilmRatingById(ratingId).orElseThrow(() -> {
+            log.error("Error checking rating with id: {}", ratingId);
+            return new NotFoundException("Рейтинг с id = " + ratingId + " не найден.");
+        });
+    }
+
+    private Genre findGenreOrThrow(Long genreId) {
+        return genreStorage.getGenreById(genreId).orElseThrow(() -> {
+            log.error("Error checking genre with id: {}", genreId);
+            return new NotFoundException("Жанр с id = " + genreId + " не найден.");
+        });
+    }
+
+    private void checkPresence(Long filmId, Long userId) {
+        findFilmOrThrow(filmId);
+        userService.getUserById(userId);
+    }
+
     private void validateFilm(Film film) {
         checkReleaseDate(film);
+        validateGenres(film);
+        findRatingOrThrow(film.getMpa().getId());
     }
 
     private void checkReleaseDate(Film film) {
@@ -122,5 +151,27 @@ public class FilmService {
     private boolean isWrongDate(Film film) {
         return film.getReleaseDate() == null
                 || film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28));
+    }
+
+    private void validateGenres(Film film) {
+        List<Genre> genres = genreStorage.getGenres();
+
+        Set<Long> incomeGenreIds = film.getGenres()
+                .stream()
+                .map(Genre::getId)
+                .collect(Collectors.toSet());
+
+        Set<Long> existsGenreIds = genres.stream()
+                .map(Genre::getId)
+                .collect(Collectors.toSet());
+
+        Set<Long> missingIds = incomeGenreIds.stream()
+                .filter(id -> !existsGenreIds.contains(id))
+                .collect(Collectors.toSet());
+
+        if (!missingIds.isEmpty()) {
+            log.error("Genres not found with ids: {}", missingIds);
+            throw new NotFoundException("Жанры c id: " + missingIds + " не найдены.");
+        }
     }
 }

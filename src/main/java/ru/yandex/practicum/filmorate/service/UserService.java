@@ -5,9 +5,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.user.FriendshipStatus;
-import ru.yandex.practicum.filmorate.model.user.User;
+import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
+
+import static ru.yandex.practicum.filmorate.model.FriendshipStatus.*;
 
 import java.util.*;
 
@@ -23,6 +24,10 @@ public class UserService {
 
     public List<User> getUsers() {
         return userStorage.getUsers();
+    }
+
+    public User getUserById(Long id) {
+        return findUserOrThrow(id);
     }
 
     public User addUser(User user) {
@@ -45,11 +50,12 @@ public class UserService {
         log.info("User with id: {} got friend with id: {}", userId, friendId);
 
         if (friend.getFriends().containsKey(userId)) {
-            userStorage.setFriendStatus(user, friendId, FriendshipStatus.CONFIRMED);
-            userStorage.setFriendStatus(friend, userId, FriendshipStatus.CONFIRMED);
+            userStorage.setFriendStatus(user, friendId, CONFIRMED);
+            userStorage.setFriendStatus(friend, userId, CONFIRMED);
             return;
         }
-        userStorage.setFriendStatus(user, friendId, FriendshipStatus.UNCONFIRMED);
+
+        userStorage.setFriendStatus(user, friendId, UNCONFIRMED);
     }
 
     public void deleteFriend(Long id, Long friendId) {
@@ -59,7 +65,7 @@ public class UserService {
 
         log.info("Friendship broken between user id = {} and user id = {}", id, friendId);
         if (friend.getFriends().containsKey(id)) {
-            userStorage.setFriendStatus(friend, id, FriendshipStatus.UNCONFIRMED);
+            userStorage.setFriendStatus(friend, id, UNCONFIRMED);
         }
         userStorage.removeFriend(id, friendId);
     }
@@ -81,7 +87,7 @@ public class UserService {
                 .toList();
     }
 
-    User findUserOrThrow(Long userId) {
+    private User findUserOrThrow(Long userId) {
         return userStorage.getUserById(userId).orElseThrow(() -> {
             log.error("User with id = {} not found.", userId);
             return new NotFoundException("Пользователь с id: [" + userId + "] не найден.");

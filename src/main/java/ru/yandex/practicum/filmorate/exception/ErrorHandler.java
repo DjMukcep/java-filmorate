@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -32,13 +31,6 @@ public class ErrorHandler {
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleH2DbServerException(InternalServerException e) {
-        log.error("Server error {}: ", e.getMessage(), e);
-        return new ErrorResponse(e.getMessage());
-    }
-
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorResponse handleOtherErrors(final Throwable e) {
         log.error("Server error {}: ", e.getMessage(), e);
         return new ErrorResponse("Произошла непредвиденная ошибка: " + e.getMessage());
@@ -56,19 +48,5 @@ public class ErrorHandler {
         });
 
         return errors;
-    }
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleJsonMappingError(HttpMessageNotReadableException e) {
-        Throwable cause = e.getCause();
-        // Проверяем всю цепочку исключений
-        while (cause != null) {
-            if (cause instanceof NotFoundException) {
-                return new ErrorResponse(cause.getMessage());
-            }
-            cause = cause.getCause();
-        }
-        return new ErrorResponse("Ошибка в формате данных: " + e.getMessage());
     }
 }

@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.model.film;
+package ru.yandex.practicum.filmorate.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotBlank;
@@ -10,7 +10,6 @@ import lombok.*;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
-
 
 @Data
 @Builder

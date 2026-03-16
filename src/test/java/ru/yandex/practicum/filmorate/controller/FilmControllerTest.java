@@ -9,11 +9,14 @@ import org.junit.jupiter.api.Test;
 
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.film.Film;
-import ru.yandex.practicum.filmorate.model.user.User;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Rating;
+import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.FilmService;
 import ru.yandex.practicum.filmorate.service.UserService;
 import ru.yandex.practicum.filmorate.storage.memory.InMemoryFilmStorage;
+import ru.yandex.practicum.filmorate.storage.memory.InMemoryGenreStorage;
+import ru.yandex.practicum.filmorate.storage.memory.InMemoryMpaStorage;
 import ru.yandex.practicum.filmorate.storage.memory.InMemoryUserStorage;
 
 import java.time.LocalDate;
@@ -36,12 +39,15 @@ public class FilmControllerTest {
             validator = factory.getValidator();
         }
         userService = new UserService(new InMemoryUserStorage());
-        filmService = new FilmService(new InMemoryFilmStorage(), userService);
+        filmService = new FilmService(
+                new InMemoryFilmStorage(new InMemoryGenreStorage(),new InMemoryMpaStorage()),
+                new InMemoryMpaStorage(), new InMemoryGenreStorage(),userService);
         filmController = new FilmController(filmService);
         Film film = Film.builder()
                 .name("default-film")
                 .description("default-description")
                 .releaseDate(LocalDate.of(2000, 1, 1))
+                .mpa(new Rating(1L,"G"))
                 .duration(100)
                 .build();
 
@@ -54,6 +60,7 @@ public class FilmControllerTest {
                 .name("film")
                 .description("_".repeat(200))
                 .releaseDate(LocalDate.of(1895, 12, 28))
+                .mpa(new Rating(1L,""))
                 .duration(100)
                 .build();
 
@@ -77,6 +84,7 @@ public class FilmControllerTest {
                 .name(wrongName)
                 .description("description")
                 .releaseDate(LocalDate.of(1999, 2, 2))
+                .mpa(new Rating(2L,""))
                 .duration(100)
                 .build();
 
@@ -93,6 +101,7 @@ public class FilmControllerTest {
                 .name(null)
                 .description("description")
                 .releaseDate(LocalDate.of(1999, 2, 2))
+                .mpa(new Rating(1L,""))
                 .duration(100)
                 .build();
 
@@ -109,6 +118,7 @@ public class FilmControllerTest {
                 .name("film")
                 .description(wrongDescription)
                 .releaseDate(LocalDate.of(1999, 2, 2))
+                .mpa(new Rating(1L,""))
                 .duration(100)
                 .build();
 
@@ -124,6 +134,7 @@ public class FilmControllerTest {
                 .name("film")
                 .description(null)
                 .releaseDate(LocalDate.of(1999, 2, 2))
+                .mpa(new Rating(1L,""))
                 .duration(100)
                 .build();
 
@@ -140,6 +151,7 @@ public class FilmControllerTest {
                 .name("film")
                 .description("description")
                 .releaseDate(wrongReleaseDate)
+                .mpa(new Rating(1L,"G"))
                 .duration(100)
                 .build();
 
@@ -157,6 +169,7 @@ public class FilmControllerTest {
                 .name("film")
                 .description("description")
                 .releaseDate(null)
+                .mpa(new Rating(1L,"G"))
                 .duration(100)
                 .build();
 
@@ -175,6 +188,7 @@ public class FilmControllerTest {
                 .name("film")
                 .description("description")
                 .releaseDate(LocalDate.of(1895, 12, 28))
+                .mpa(new Rating(1L,"G"))
                 .duration(wrongDuration)
                 .build();
 
@@ -191,6 +205,7 @@ public class FilmControllerTest {
                 .name("film")
                 .description("description")
                 .releaseDate(LocalDate.of(1895, 12, 28))
+                .mpa(new Rating(1L,"G"))
                 .duration(wrongDuration)
                 .build();
 
@@ -206,6 +221,7 @@ public class FilmControllerTest {
                 .name("film")
                 .description("description")
                 .releaseDate(LocalDate.of(1895, 12, 28))
+                .mpa(new Rating(1L,"G"))
                 .duration(null)
                 .build();
 
@@ -222,6 +238,7 @@ public class FilmControllerTest {
                 .name("film")
                 .description("description")
                 .releaseDate(LocalDate.of(2000, 12, 28))
+                .mpa(new Rating(1L,"G"))
                 .duration(100)
                 .build();
 
@@ -247,6 +264,7 @@ public class FilmControllerTest {
                 .name("film")
                 .description("description")
                 .releaseDate(LocalDate.of(2000, 12, 28))
+                .mpa(new Rating(1L,"G"))
                 .duration(100)
                 .build();
 
@@ -370,12 +388,14 @@ public class FilmControllerTest {
                 .name("film2")
                 .description("_".repeat(200))
                 .releaseDate(LocalDate.of(1895, 12, 28))
+                .mpa(new Rating(1L,""))
                 .duration(100)
                 .build();
         Film film3 = Film.builder()
                 .name("film3")
                 .description("_".repeat(200))
                 .releaseDate(LocalDate.of(1895, 12, 28))
+                .mpa(new Rating(3L,""))
                 .duration(100)
                 .build();
         filmController.addFilm(film2);

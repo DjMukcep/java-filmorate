@@ -2,8 +2,8 @@ package ru.yandex.practicum.filmorate.storage.memory;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.model.user.FriendshipStatus;
-import ru.yandex.practicum.filmorate.model.user.User;
+import ru.yandex.practicum.filmorate.model.FriendshipStatus;
+import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.*;
@@ -28,6 +28,7 @@ public class InMemoryUserStorage implements UserStorage {
     @Override
     public User addUser(User user) {
         Long id = ++lastId;
+
         user.setId(id);
         users.put(user.getId(), user);
         return user;
