@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.storage.dao;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Rating;
@@ -11,7 +10,6 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-@Qualifier("DB")
 public class MpaDbStorage extends BaseDbStorage<Rating> implements MpaStorage {
 
     public MpaDbStorage(JdbcTemplate jdbc, MpaRowMapper mapper) {

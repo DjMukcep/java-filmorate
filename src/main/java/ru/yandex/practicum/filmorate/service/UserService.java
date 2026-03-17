@@ -1,7 +1,7 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -14,13 +14,10 @@ import java.util.*;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserStorage userStorage;
-
-    public UserService(@Qualifier("DB") UserStorage userStorage) {
-        this.userStorage = userStorage;
-    }
 
     public List<User> getUsers() {
         return userStorage.getUsers();
@@ -32,14 +29,15 @@ public class UserService {
 
     public User addUser(User user) {
         validate(user);
-        log.info("Added user: {}", user.getName());
-        return userStorage.addUser(user);
+        User newUser = userStorage.addUser(user);
+        log.info("New user: {}", newUser);
+        return newUser;
     }
 
     public User updateUser(User newUser) {
         validate(newUser);
         findUserOrThrow(newUser.getId());
-        log.info("Updated user with id: {}", newUser.getId());
+        log.info("Update user: {}", newUser);
         return userStorage.updateUser(newUser);
     }
 
@@ -47,25 +45,30 @@ public class UserService {
         checkUserConflict(userId, friendId);
         User user = findUserOrThrow(userId);
         User friend = findUserOrThrow(friendId);
-        log.info("User with id: {} got friend with id: {}", userId, friendId);
+        List<User> friends = userStorage.getFriends(friend);
 
-        if (friend.getFriends().containsKey(userId)) {
+
+        if (friends.contains(user)) {
             userStorage.setFriendStatus(user, friendId, CONFIRMED);
             userStorage.setFriendStatus(friend, userId, CONFIRMED);
+            log.info("User with id: {} got confirmed friend with id: {}", userId, friendId);
             return;
         }
 
+        log.info("User with id: {} got unconfirmed friend with id: {}", userId, friendId);
         userStorage.setFriendStatus(user, friendId, UNCONFIRMED);
     }
 
     public void deleteFriend(Long id, Long friendId) {
         checkUserConflict(id, friendId);
-        findUserOrThrow(id);
+        User user = findUserOrThrow(id);
         User friend = findUserOrThrow(friendId);
+        List<User> friends = userStorage.getFriends(friend);
 
         log.info("Friendship broken between user id = {} and user id = {}", id, friendId);
-        if (friend.getFriends().containsKey(id)) {
+        if (friends.contains(user)) {
             userStorage.setFriendStatus(friend, id, UNCONFIRMED);
+            log.info("User with id: {} has unconfirmed friendship now with user id: {}", friendId, id);
         }
         userStorage.removeFriend(id, friendId);
     }

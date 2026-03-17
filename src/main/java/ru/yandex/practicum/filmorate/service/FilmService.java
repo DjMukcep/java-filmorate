@@ -1,7 +1,8 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
+
 import org.springframework.stereotype.Service;
 
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
@@ -21,22 +22,13 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class FilmService {
 
     private final FilmStorage filmStorage;
     private final UserService userService;
     private final MpaStorage mpaStorage;
     private final GenreStorage genreStorage;
-
-
-    public FilmService(
-            @Qualifier("DB") FilmStorage filmStorage, @Qualifier("DB") MpaStorage mpaStorage,
-            @Qualifier("DB") GenreStorage genreStorage, UserService userService) {
-        this.filmStorage = filmStorage;
-        this.userService = userService;
-        this.mpaStorage = mpaStorage;
-        this.genreStorage = genreStorage;
-    }
 
     public List<Film> getFilms() {
         return filmStorage.getFilms();
@@ -50,7 +42,7 @@ public class FilmService {
         validateFilm(film);
 
         Film inStorageFilm = filmStorage.addFilm(film);
-        log.info("Added film: {}", film.getName());
+        log.info("New film: {}", film);
         return inStorageFilm;
     }
 
@@ -59,15 +51,16 @@ public class FilmService {
         findFilmOrThrow(newFilm.getId());
 
         Film updatedFilm = filmStorage.updateFilm(newFilm);
-        log.info("Updated film with id: {}", newFilm.getId());
+        log.info("Update film: {}", newFilm);
         return updatedFilm;
     }
 
     public void addLike(Long filmId, Long userId) {
         Film film = findFilmOrThrow(filmId);
         User user = userService.getUserById(userId);
+        Set<Long> filmLikes = filmStorage.getLikes(filmId);
 
-        if (film.getUserIds().contains(user.getId())) {
+        if (filmLikes.contains(user.getId())) {
             throw new ValidationException(
                     "Лайк с id: " + userId + ", уже имеется. Разрешен только 1 лайк от пользователя");
         }

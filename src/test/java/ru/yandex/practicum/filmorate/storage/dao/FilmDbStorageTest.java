@@ -33,15 +33,15 @@ public class FilmDbStorageTest {
 
     @Test
     void addFilmTest() {
-        Genre action = new Genre(6L,"Боевик");
-        Genre comedy = new Genre(1L,"Комедия");
+        Genre action = new Genre(6L, "Боевик");
+        Genre comedy = new Genre(1L, "Комедия");
         Film film = Film.builder()
                 .name("Побег из Шоушенка")
                 .description("История одного заключения")
                 .releaseDate(LocalDate.of(1994, 9, 10))
                 .duration(142)
-                .mpa(new Rating(1L,""))
-                .genres(Set.of(action,comedy))
+                .mpa(new Rating(1L, ""))
+                .genres(Set.of(action, comedy))
                 .build();
 
         Film savedFilm = storage.addFilm(film);
@@ -60,15 +60,15 @@ public class FilmDbStorageTest {
 
     @Test
     void updateFilmTest() {
-        Genre action = new Genre(6L,"Боевик");
-        Genre comedy = new Genre(1L,"Комедия");
-        Genre drama = new Genre(2L,"Драма");
+        Genre action = new Genre(6L, "Боевик");
+        Genre comedy = new Genre(1L, "Комедия");
+        Genre drama = new Genre(2L, "Драма");
         Film film = Film.builder()
                 .name("Старое название")
                 .description("Старое описание")
                 .releaseDate(LocalDate.of(2000, 1, 1))
                 .duration(100)
-                .mpa(new Rating(1L,"G"))
+                .mpa(new Rating(1L, "G"))
                 .genres(Set.of(action))
                 .build();
         Film savedFilm = storage.addFilm(film);
@@ -80,7 +80,7 @@ public class FilmDbStorageTest {
                 .description("Новое описание")
                 .releaseDate(LocalDate.of(2020, 12, 12))
                 .duration(180)
-                .mpa(new Rating(2L,"")) // Другой рейтинг
+                .mpa(new Rating(2L, "")) // Другой рейтинг
                 .genres(Set.of(comedy, drama))
                 .build();
 
@@ -112,12 +112,12 @@ public class FilmDbStorageTest {
         Film filmA = storage.addFilm(Film.builder()
                 .name("Фильм А").description("Описание А").duration(100)
                 .releaseDate(LocalDate.of(2020, 1, 1))
-                .mpa(new Rating(1L,"G")).build());
+                .mpa(new Rating(1L, "G")).build());
 
         Film filmB = storage.addFilm(Film.builder()
                 .name("Фильм Б").description("Описание Б").duration(120)
                 .releaseDate(LocalDate.of(2021, 1, 1))
-                .mpa(new Rating(1L,"G")).build());
+                .mpa(new Rating(1L, "G")).build());
 
         storage.addLike(filmA, user1.getId());
         storage.addLike(filmA, user2.getId());
@@ -141,12 +141,12 @@ public class FilmDbStorageTest {
         Film filmA = storage.addFilm(Film.builder()
                 .name("Фильм А").description("Описание А").duration(100)
                 .releaseDate(LocalDate.of(2020, 1, 1))
-                .mpa(new Rating(1L,"G")).build());
+                .mpa(new Rating(1L, "G")).build());
 
         Film filmB = storage.addFilm(Film.builder()
                 .name("Фильм Б").description("Описание Б").duration(120)
                 .releaseDate(LocalDate.of(2021, 1, 1))
-                .mpa(new Rating(1L,"G")).build());
+                .mpa(new Rating(1L, "G")).build());
 
         // обоим ставим по лайку
         storage.addLike(filmA, user.getId());
@@ -162,18 +162,20 @@ public class FilmDbStorageTest {
                 .hasSize(2)
                 .containsExactly(filmB, filmA);
 
+        Set<Long> likes = storage.getLikes(popular.get(1).getId());
+
         // Проверяем, что у Фильма А лайков больше нет
-        assertThat(popular.get(1).getUserIds().size()).isEqualTo(0);
+        assertThat(likes.size()).isEqualTo(0);
     }
 
     @Test
     void getMostPopularFilmsTest() {
         Film film1 = storage.addFilm(Film.builder().name("Фильм 1").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L, "G")).build());
         Film film2 = storage.addFilm(Film.builder().name("Фильм 2").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L, "G")).build());
         Film film3 = storage.addFilm(Film.builder().name("Фильм 3").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L, "G")).build());
 
         // Создаем пользователей для лайков
         User u1 = userStorage.addUser(User.builder().email("1@m.ru").login("l1")
@@ -202,11 +204,11 @@ public class FilmDbStorageTest {
     @Test
     void getFilmsTest() {
         Film film1 = storage.addFilm(Film.builder().name("Фильм 1").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L, "G")).build());
         Film film2 = storage.addFilm(Film.builder().name("Фильм 2").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L, "G")).build());
         Film film3 = storage.addFilm(Film.builder().name("Фильм 3").description("Д")
-                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L,"G")).build());
+                .releaseDate(LocalDate.now()).duration(100).mpa(new Rating(1L, "G")).build());
 
         List<Film> films = storage.getFilms();
 
@@ -228,7 +230,7 @@ public class FilmDbStorageTest {
         Film film = storage.addFilm(Film.builder()
                 .name("Начало").description("Сны").duration(148)
                 .releaseDate(LocalDate.of(2010, 7, 8))
-                .mpa(new Rating(1L,"G")).build());
+                .mpa(new Rating(1L, "G")).build());
 
         User user1 = userStorage.addUser(User.builder()
                 .email("u1@mail.ru").login("l1").name("N1").birthday(LocalDate.now()).build());

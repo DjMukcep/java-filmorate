@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.dao;
 
 import jakarta.annotation.Nonnull;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -18,7 +17,6 @@ import java.util.*;
 
 
 @Repository
-@Qualifier("DB")
 public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     private final GenreRowMapper genreRowMapper;
@@ -67,6 +65,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
                 film.getDuration(),
                 film.getId()
         );
+
         removeFilmGenres(film.getId());
         saveGenres(film);
         return film;

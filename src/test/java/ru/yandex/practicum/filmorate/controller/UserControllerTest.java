@@ -6,37 +6,46 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.memory.InMemoryUserStorage;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SpringBootTest
+@AutoConfigureTestDatabase
+@Transactional
+@ActiveProfiles("test")
 public class UserControllerTest {
 
+    @Autowired
     private UserController userController;
     private Validator validator;
+    private User createUser;
 
     @BeforeEach
     void setUp() {
-        userController = new UserController(new UserService(new InMemoryUserStorage()));
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             validator = factory.getValidator();
         }
-        User user = User.builder()
+        createUser = User.builder()
                 .email("test@email.com")
                 .login("test-login")
                 .name("test-name")
                 .birthday(LocalDate.of(2000, 12, 12))
                 .build();
 
-        userController.addUser(user);
+        userController.addUser(createUser);
     }
 
     @Test
@@ -53,7 +62,6 @@ public class UserControllerTest {
 
         assertTrue(violations.isEmpty());
         assertNotNull(user);
-        assertEquals(2, user.getId());
         assertEquals(user.getEmail(), validUser.getEmail());
         assertEquals(user.getLogin(), validUser.getLogin());
         assertEquals(user.getBirthday(), validUser.getBirthday());
@@ -171,7 +179,6 @@ public class UserControllerTest {
 
         assertTrue(violations.isEmpty());
         assertNotNull(user);
-        assertEquals(2, user.getId());
         assertEquals(user.getEmail(), validUser.getEmail());
         assertEquals(user.getLogin(), validUser.getLogin());
         assertEquals(user.getName(), validUser.getLogin());
@@ -193,7 +200,6 @@ public class UserControllerTest {
 
         assertTrue(violations.isEmpty());
         assertNotNull(user);
-        assertEquals(2, user.getId());
         assertEquals(user.getEmail(), validUser.getEmail());
         assertEquals(user.getLogin(), validUser.getLogin());
         assertEquals(user.getName(), validUser.getLogin());
@@ -220,7 +226,7 @@ public class UserControllerTest {
     @Test
     void shouldUpdateUserWhenUserFound() {
         User validUser = User.builder()
-                .id(1L)
+                .id(createUser.getId())
                 .email("user@email.com")
                 .login("user-login")
                 .name("user-name")
@@ -235,7 +241,6 @@ public class UserControllerTest {
         assertTrue(userController.getUsers().contains(user));
         assertFalse(userController.getUsers().size() > 1);
 
-        assertEquals(1, user.getId());
         assertEquals(user.getEmail(), validUser.getEmail());
         assertEquals(user.getLogin(), validUser.getLogin());
         assertEquals(user.getName(), validUser.getName());
@@ -263,7 +268,7 @@ public class UserControllerTest {
     @Test
     void shouldUpdateUserWhenNameIsNull() {
         User validUser = User.builder()
-                .id(1L)
+                .id(createUser.getId())
                 .email("user@email.com")
                 .login("user-login")
                 .name(null)
@@ -278,7 +283,6 @@ public class UserControllerTest {
         assertFalse(userController.getUsers().size() > 1);
         assertTrue(userController.getUsers().contains(user));
 
-        assertEquals(1, user.getId());
         assertEquals(user.getEmail(), validUser.getEmail());
         assertEquals(user.getLogin(), validUser.getLogin());
         assertEquals(user.getName(), validUser.getLogin());
@@ -295,8 +299,8 @@ public class UserControllerTest {
                 .build();
         userController.addUser(friend);
 
-        userController.addFriend(1L, friend.getId());
-        List<User> friends = userController.getFriends(1L);
+        userController.addFriend(createUser.getId(), friend.getId());
+        List<User> friends = userController.getFriends(createUser.getId());
         List<User> friendOfFriend = userController.getFriends(friend.getId());
 
         assertTrue(friends.contains(friend));
@@ -305,26 +309,28 @@ public class UserControllerTest {
 
     @Test
     void shouldNotAddFriendWhenWithIdSameAsUserId() {
+        long id = createUser.getId();
         ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.addFriend(1L, 1L));
+                ValidationException.class, () -> userController.addFriend(id, id));
 
         assertEquals("Попытка добавить или удалить друга с тем же id, что и у пользователя.", exception.getMessage());
-        assertTrue(userController.getFriends(1L).isEmpty());
+        assertTrue(userController.getFriends(id).isEmpty());
     }
 
     @Test
     void shouldThrowExceptionWhenTryDeleteFriendWithIdSameAsUserId() {
+        long id = createUser.getId();
         ValidationException exception = assertThrows(
-                ValidationException.class, () -> userController.deleteFriend(1L, 1L));
+                ValidationException.class, () -> userController.deleteFriend(id, id));
 
         assertEquals("Попытка добавить или удалить друга с тем же id, что и у пользователя.", exception.getMessage());
-        assertTrue(userController.getFriends(1L).isEmpty());
+        assertTrue(userController.getFriends(id).isEmpty());
     }
 
     @Test
     void shouldThrowExceptionWhenIdFriendNotFoundWhileAddFriend() {
         NotFoundException exception = assertThrows(
-                NotFoundException.class, () -> userController.addFriend(1L, 999L));
+                NotFoundException.class, () -> userController.addFriend(createUser.getId(), 999L));
 
         assertEquals("Пользователь с id: [999] не найден.", exception.getMessage());
     }
@@ -332,7 +338,7 @@ public class UserControllerTest {
     @Test
     void shouldThrowExceptionWhenIdFriendNotFoundWhileDeleteFriend() {
         NotFoundException exception = assertThrows(
-                NotFoundException.class, () -> userController.deleteFriend(1L, 999L));
+                NotFoundException.class, () -> userController.deleteFriend(createUser.getId(), 999L));
 
         assertEquals("Пользователь с id: [999] не найден.", exception.getMessage());
     }
@@ -340,7 +346,7 @@ public class UserControllerTest {
     @Test
     void shouldThrowExceptionWhenIdUserNotFoundWhileAddFriend() {
         NotFoundException exception = assertThrows(
-                NotFoundException.class, () -> userController.addFriend(999L, 1L));
+                NotFoundException.class, () -> userController.addFriend(999L, createUser.getId()));
 
         assertEquals("Пользователь с id: [999] не найден.", exception.getMessage());
     }
@@ -348,47 +354,52 @@ public class UserControllerTest {
     @Test
     void shouldThrowExceptionWhenIdUserNotFoundWhileDeleteFriend() {
         NotFoundException exception = assertThrows(
-                NotFoundException.class, () -> userController.deleteFriend(999L, 1L));
+                NotFoundException.class, () -> userController.deleteFriend(999L, createUser.getId()));
 
         assertEquals("Пользователь с id: [999] не найден.", exception.getMessage());
     }
 
     @Test
     void shouldReturnRightCommonFriends() {
-        setUpUserFriends();
-        List<User> commFriends = userController.getCommonFriends(1L, 4L);
+        List<User> users = setUpUserFriends();
+        long firstUser = createUser.getId();
+        long thirdUser = users.get(1).getId();
+        long fourthUser = users.get(2).getId();
+        List<User> commFriends = userController.getCommonFriends(firstUser, fourthUser);
         assertEquals(1, commFriends.size());
-        assertEquals(3, commFriends.getFirst().getId());
+        assertEquals(thirdUser, commFriends.getFirst().getId());
     }
 
-    void setUpUserFriends() {
-        User user2 = User.builder()
+    List<User> setUpUserFriends() {
+        long id = createUser.getId();
+        User u2 = User.builder()
                 .email("test@email.com")
                 .login("test-login")
                 .name("name1")
                 .birthday(LocalDate.of(2000, 12, 12))
                 .build();
-        User user3 = User.builder()
+        User u3 = User.builder()
                 .email("test@email.com")
                 .login("test-login")
                 .name("name2")
                 .birthday(LocalDate.of(2000, 12, 12))
                 .build();
-        User user4 = User.builder()
+        User u4 = User.builder()
                 .email("test@email.com")
                 .login("test-login")
                 .name("name3")
                 .birthday(LocalDate.of(2000, 12, 12))
                 .build();
 
-        userController.addUser(user2);
-        userController.addUser(user3);
-        userController.addUser(user4);
+        User user2 = userController.addUser(u2);
+        User user3 = userController.addUser(u3);
+        User user4 = userController.addUser(u4);
 
-        userController.addFriend(1L, user2.getId());
-        userController.addFriend(1L, user3.getId());
-        userController.addFriend(1L, user4.getId());
+        userController.addFriend(id, u2.getId());
+        userController.addFriend(id, u3.getId());
+        userController.addFriend(id, u4.getId());
 
-        userController.addFriend(user4.getId(), user3.getId());
+        userController.addFriend(u4.getId(), u3.getId());
+        return Arrays.asList(user2, user3, user4);
     }
 }

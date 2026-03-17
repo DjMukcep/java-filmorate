@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.storage.dao;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -11,7 +10,6 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-@Qualifier("DB")
 public class GenreDbStorage extends BaseDbStorage<Genre> implements GenreStorage {
 
 
@@ -27,7 +25,10 @@ public class GenreDbStorage extends BaseDbStorage<Genre> implements GenreStorage
 
     @Override
     public Optional<Genre> getGenreById(Long genreId) {
-        String sql = "SELECT * FROM genres WHERE genre_id=?";
+        String sql = """
+                SELECT * FROM genres
+                WHERE genre_id=?
+                """;
         return findOne(sql, genreId);
     }
 }
