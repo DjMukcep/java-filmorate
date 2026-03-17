@@ -43,6 +43,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
         film.setId(id);
         saveGenres(film);
+        loadGenres(List.of(film));
         return film;
     }
 
@@ -68,6 +69,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
         removeFilmGenres(film.getId());
         saveGenres(film);
+        loadGenres(List.of(film));
         return film;
     }
 

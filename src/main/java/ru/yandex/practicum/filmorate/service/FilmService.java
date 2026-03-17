@@ -39,18 +39,20 @@ public class FilmService {
     }
 
     public Film addFilm(Film film) {
-        validateFilm(film);
+        Rating rating = validateFilm(film);
 
         Film inStorageFilm = filmStorage.addFilm(film);
+        inStorageFilm.setMpa(rating);
         log.info("New film: {}", film);
         return inStorageFilm;
     }
 
     public Film updateFilm(Film newFilm) {
-        validateFilm(newFilm);
+        Rating rating = validateFilm(newFilm);
         findFilmOrThrow(newFilm.getId());
 
         Film updatedFilm = filmStorage.updateFilm(newFilm);
+        updatedFilm.setMpa(rating);
         log.info("Update film: {}", newFilm);
         return updatedFilm;
     }
@@ -128,10 +130,10 @@ public class FilmService {
         userService.getUserById(userId);
     }
 
-    private void validateFilm(Film film) {
+    private Rating validateFilm(Film film) {
         checkReleaseDate(film);
         validateGenres(film);
-        findRatingOrThrow(film.getMpa().getId());
+        return findRatingOrThrow(film.getMpa().getId());
     }
 
     private void checkReleaseDate(Film film) {

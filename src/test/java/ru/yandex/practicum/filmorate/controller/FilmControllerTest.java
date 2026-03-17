@@ -86,10 +86,10 @@ public class FilmControllerTest {
         assertEquals("description", film.getDescription());
         assertEquals("1895-12-28", film.getReleaseDate().toString());
         assertEquals(100, film.getDuration());
-        assertEquals("", film.getMpa().getName());
+        assertEquals("PG", film.getMpa().getName());
         assertEquals(2L, film.getMpa().getId());
         assertEquals(1, film.getGenres().size());
-        assertEquals("", film.getGenres().iterator().next().getName());
+        assertEquals("Комедия", film.getGenres().iterator().next().getName());
     }
 
 
