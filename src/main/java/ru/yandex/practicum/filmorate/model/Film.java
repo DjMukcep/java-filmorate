@@ -7,7 +7,8 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDate;
-
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -24,4 +25,15 @@ public class Film {
     @NotNull(message = "Длительность фильма должна быть указана.")
     @Positive(message = "Продолжительность фильма должна быть положительной.")
     private Integer duration;
+    @Builder.Default
+    private Set<Genre> genres = new LinkedHashSet<>();
+    private Rating mpa;
+
+    public void setGenres(Set<Genre> genres) {
+        if (genres != null) {
+            this.genres = genres.stream()
+                    .sorted(Comparator.comparingLong(Genre::getId))
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+        }
+    }
 }

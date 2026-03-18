@@ -6,10 +6,11 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.storage.user.UserStorage;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
+
+import static ru.yandex.practicum.filmorate.model.FriendshipStatus.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -18,45 +19,57 @@ public class UserService {
 
     private final UserStorage userStorage;
 
-
     public List<User> getUsers() {
         return userStorage.getUsers();
     }
 
+    public User getUserById(Long id) {
+        return findUserOrThrow(id);
+    }
+
     public User addUser(User user) {
         validate(user);
-
-        Long id = (long) (getUsers().size() + 1);
-        user.setId(id);
-        userStorage.saveUser(user);
-        log.info("Added user: {}", user.getName());
-        return user;
+        User newUser = userStorage.addUser(user);
+        log.info("New user: {}", newUser);
+        return newUser;
     }
 
     public User updateUser(User newUser) {
         validate(newUser);
-
-        return userStorage.getUserById(newUser.getId())
-                .map(user -> processUpdateUser(newUser))
-                .orElseThrow(() -> {
-                    log.error("Error updating user: {}", newUser.getName());
-                    return new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден.");
-                });
+        findUserOrThrow(newUser.getId());
+        log.info("Update user: {}", newUser);
+        return userStorage.updateUser(newUser);
     }
 
-    public void addFriend(Long id, Long friendId) {
-        checkUserConflict(id, friendId);
-        checkUserPresence(id, friendId);
+    public void addFriend(Long userId, Long friendId) {
+        checkUserConflict(userId, friendId);
+        User user = findUserOrThrow(userId);
+        User friend = findUserOrThrow(friendId);
+        List<User> friends = userStorage.getFriends(friend);
 
-        log.info("User with id: {} got friend with id: {}", id, friendId);
-        userStorage.addFriend(friendId, id);
+
+        if (friends.contains(user)) {
+            userStorage.setFriendStatus(user, friendId, CONFIRMED);
+            userStorage.setFriendStatus(friend, userId, CONFIRMED);
+            log.info("User with id: {} got confirmed friend with id: {}", userId, friendId);
+            return;
+        }
+
+        log.info("User with id: {} got unconfirmed friend with id: {}", userId, friendId);
+        userStorage.setFriendStatus(user, friendId, UNCONFIRMED);
     }
 
     public void deleteFriend(Long id, Long friendId) {
         checkUserConflict(id, friendId);
-        checkUserPresence(id, friendId);
+        User user = findUserOrThrow(id);
+        User friend = findUserOrThrow(friendId);
+        List<User> friends = userStorage.getFriends(friend);
 
         log.info("Friendship broken between user id = {} and user id = {}", id, friendId);
+        if (friends.contains(user)) {
+            userStorage.setFriendStatus(friend, id, UNCONFIRMED);
+            log.info("User with id: {} has unconfirmed friendship now with user id: {}", friendId, id);
+        }
         userStorage.removeFriend(id, friendId);
     }
 
@@ -77,17 +90,11 @@ public class UserService {
                 .toList();
     }
 
-    void checkUserPresence(Long... userIds) {
-        Set<Long> userIdSet = Set.of(userIds);
-        List<Long> foundIds = userStorage.findExistentIds(userIdSet);
-
-        if (userIdSet.size() != foundIds.size()) {
-            String missingIds = userIdSet.stream()
-                    .filter(ids -> !foundIds.contains(ids))
-                    .collect(Collectors.toSet()).toString();
-            log.error("Users not found with ids: {}", missingIds);
-            throw new NotFoundException("Не найдены пользователи с id: " + missingIds);
-        }
+    private User findUserOrThrow(Long userId) {
+        return userStorage.getUserById(userId).orElseThrow(() -> {
+            log.error("User with id = {} not found.", userId);
+            return new NotFoundException("Пользователь с id: [" + userId + "] не найден.");
+        });
     }
 
     private void checkUserConflict(Long id, Long friendId) {
@@ -96,19 +103,6 @@ public class UserService {
             throw new ValidationException(
                     "Попытка добавить или удалить друга с тем же id, что и у пользователя.");
         }
-    }
-
-    private User findUserOrThrow(Long userId) {
-        return userStorage.getUserById(userId).orElseThrow(() -> {
-            log.error("User with id = {} not found.", userId);
-            return new NotFoundException("Пользователь с id = " + userId + " не найден.");
-        });
-    }
-
-    private User processUpdateUser(User newUser) {
-        userStorage.saveUser(newUser);
-        log.info("Updated user with id: {}", newUser.getId());
-        return newUser;
     }
 
     private void validate(User user) {
